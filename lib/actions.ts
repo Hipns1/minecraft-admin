@@ -8,16 +8,22 @@ export async function authenticate(
     formData: FormData,
 ) {
     try {
-        await signIn('credentials', formData)
+        // We pass the credentials directly. signIn will throw a redirect on success.
+        await signIn('credentials', {
+            username: formData.get('username'),
+            password: formData.get('password'),
+            redirectTo: '/dashboard',
+        });
     } catch (error) {
         if (error instanceof AuthError) {
             switch (error.type) {
                 case 'CredentialsSignin':
-                    return 'Invalid credentials.'
+                    return 'Invalid credentials.';
                 default:
-                    return 'Something went wrong.'
+                    return 'Something went wrong.';
             }
         }
-        throw error
+        // IMPORTANT: Re-throw the redirect error so Next.js can handle it.
+        throw error;
     }
 }

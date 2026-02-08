@@ -1,36 +1,15 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React from "react";
+import { useFormState, useFormStatus } from "react-dom";
 import { authenticate } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const [errorMessage, setErrorMessage] = useState<string | undefined>("");
-  const [isPending, startTransition] = useTransition();
-
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-
-    startTransition(async () => {
-      try {
-        const error = await authenticate(undefined, formData);
-        if (error) {
-          setErrorMessage(error);
-        }
-      } catch (e) {
-        // If it's a redirect error, it might be caught here depending on environment,
-        // but usually Next.js handles it. 
-        // If it's a real error, show generic message
-        console.error(e);
-        // We usually don't set error message for redirects
-      }
-    });
-  };
+  const [errorMessage, dispatch] = useFormState(authenticate, undefined);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-900 p-4">
@@ -42,7 +21,7 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form action={dispatch} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
@@ -73,9 +52,7 @@ export default function LoginPage() {
                 {errorMessage}
               </div>
             )}
-            <Button type="submit" className="w-full" disabled={isPending}>
-              {isPending ? "Signing in..." : "Sign In"}
-            </Button>
+            <LoginButton />
           </form>
         </CardContent>
         <CardFooter className="justify-center text-xs text-gray-500">
@@ -83,5 +60,15 @@ export default function LoginPage() {
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+function LoginButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button type="submit" className="w-full" disabled={pending}>
+      {pending ? "Signing in..." : "Sign In"}
+    </Button>
   );
 }
