@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  mc-admin:
+    build: .
+    container_name: minecraft-admin
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    # Note: To control host systemd, you typically need to mount these volumes 
+    # and run as a specific user or with specific privileges.
+    # volumes:
+    #   - /var/run/dbus:/var/run/dbus
+    #   - /run/systemd/system:/run/systemd/system
+    networks:
+      - mc-network
+
+networks:
+  mc-network:
+    driver: bridge

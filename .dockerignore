@@ -1,0 +1,9 @@
+node_modules
+.next
+.env
+build.log
+build_final.log
+.git
+Dockerfile
+docker-compose.yml
+.dockerignore
