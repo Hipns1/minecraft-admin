@@ -19,10 +19,21 @@ export default async function DashboardPage() {
 
     let playerCount = 0;
     let maxPlayers = 0;
+    let version = "Unknown";
 
     if (status.active) {
         try {
             const rcon = await getRconClient();
+
+            // Fetch version
+            const versionResponse = await rcon.send("version");
+            const versionMatch = versionResponse.match(/MC: ([\d.]+)/);
+            if (versionMatch) {
+                version = versionMatch[1];
+            } else {
+                version = versionResponse.split("\n")[0].substring(0, 20);
+            }
+
             const listResponse = await rcon.send("list");
             const match = listResponse.match(/(\d+) of a max of (\d+)/);
             if (match) {
@@ -54,11 +65,11 @@ export default async function DashboardPage() {
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                 <StatusCard
-                    title="Engine Status"
-                    value={status.active ? "Online" : "Offline"}
-                    icon={Activity}
+                    title="Instance Version"
+                    value={status.active ? version : "Offline"}
+                    icon={Shield}
                     variant={status.active ? "success" : "destructive"}
-                    subtext={status.active ? "Cluster healthy" : "Maintenance required"}
+                    subtext={status.active ? "Stable Build" : "Core Suspended"}
                 />
                 <StatusCard
                     title="Active Entities"
@@ -74,7 +85,7 @@ export default async function DashboardPage() {
                     subtext="Continuous operational time"
                 />
                 <StatusCard
-                    title="Load Factor"
+                    title="System Load"
                     value={status.active ? `${status.cpu}` : "0%"}
                     icon={Cpu}
                     subtext={`Memory: ${status.memory}`}

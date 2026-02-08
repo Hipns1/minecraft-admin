@@ -7,6 +7,8 @@ services:
     env_file:
       - .env
     volumes:
-      - /home/serveradmin/minecraft/logs:/home/serveradmin/minecraft/logs:ro
+      - /home/serveradmin/minecraft:/home/serveradmin/minecraft:ro
+      # If you need write access for file management in the future, change :ro to :rw
+
     # Note: Using network_mode: host will use the host's 3001 port directly.
     # Ensure the path /home/serveradmin/minecraft/logs is correct on your host machine.

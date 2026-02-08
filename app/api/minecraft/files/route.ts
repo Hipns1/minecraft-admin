@@ -28,10 +28,25 @@ export async function GET(request: Request) {
         const targetPath = path.join(basePath, subDir);
         const files = await fs.readdir(targetPath, { withFileTypes: true });
 
-        const fileList = files.map(file => ({
-            name: file.name,
-            isDirectory: file.isDirectory(),
-            size: 0, // We could get stats if needed
+        const fileList = await Promise.all(files.map(async (file) => {
+            const filePath = path.join(targetPath, file.name);
+            let size = 0;
+            let mtime = new Date();
+
+            try {
+                const stats = await fs.stat(filePath);
+                size = stats.size;
+                mtime = stats.mtime;
+            } catch (e) {
+                // Ignore if we can't get stats
+            }
+
+            return {
+                name: file.name,
+                isDirectory: file.isDirectory(),
+                size: size,
+                mtime: mtime,
+            };
         }));
 
         return NextResponse.json({ files: fileList });

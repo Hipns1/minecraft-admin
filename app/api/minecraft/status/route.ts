@@ -17,9 +17,21 @@ export async function GET() {
         let players: string[] = [];
 
         // Only try RCON if system is active
+        let version = "Unknown";
         if (sysStatus.active) {
             try {
                 const rcon = await getRconClient();
+
+                // Get version
+                const versionResponse = await rcon.send("version");
+                const versionMatch = versionResponse.match(/MC: ([\d.]+)/);
+                if (versionMatch) {
+                    version = versionMatch[1];
+                } else {
+                    // Fallback for non-standard responses
+                    version = versionResponse.split("\n")[0].substring(0, 30);
+                }
+
                 // Typically "list" command returns: "There are 2 of a max of 20 players online: Player1, Player2"
                 const listResponse = await rcon.send("list");
 
@@ -42,6 +54,7 @@ export async function GET() {
 
         return NextResponse.json({
             ...sysStatus,
+            version,
             players: {
                 online: playerCount,
                 max: maxPlayers,
