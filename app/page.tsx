@@ -15,26 +15,26 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-900 p-4">
       <Card className="w-full max-w-sm bg-gray-950 border-gray-800 text-gray-100">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center text-primary">Admin Access</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center text-primary">Acceso Administrativo</CardTitle>
           <CardDescription className="text-center text-gray-400">
-            Enter your credentials to access the console
+            Ingresa tus credenciales para acceder al panel
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form action={dispatch} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">Usuario</Label>
               <Input
                 id="username"
                 name="username"
                 type="text"
                 required
                 className="bg-gray-900 border-gray-700 focus:border-primary"
-                placeholder="admin"
+                placeholder="usuario"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Contraseña</Label>
               <Input
                 id="password"
                 name="password"
@@ -68,7 +68,7 @@ function LoginButton() {
 
   return (
     <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? "Signing in..." : "Sign In"}
+      {pending ? "Iniciando sesión..." : "Iniciar Sesión"}
     </Button>
   );
 }

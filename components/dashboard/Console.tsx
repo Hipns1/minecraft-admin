@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
-import { Send, RotateCw, Trash2, ChevronRight, Terminal as TerminalIcon } from "lucide-react";
+import { Send, Trash2, ChevronRight, Terminal as TerminalIcon, RotateCw, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface LogLine {
@@ -15,7 +15,13 @@ interface LogLine {
     timestamp: Date;
 }
 
-export default function ConsoleInterface({ readOnly = false }: { readOnly?: boolean }) {
+export default function ConsoleInterface({
+    readOnly = false,
+    mode = "console"
+}: {
+    readOnly?: boolean,
+    mode?: "console" | "logs"
+}) {
     const [input, setInput] = useState("");
     const [logs, setLogs] = useState<LogLine[]>([]);
     const [serverLogLines, setServerLogLines] = useState<string[]>([]);
@@ -37,27 +43,29 @@ export default function ConsoleInterface({ readOnly = false }: { readOnly?: bool
                 type,
                 timestamp: new Date(),
             },
-        ].slice(-200)); // Keep last 200 items
+        ].slice(-200));
     };
 
     const fetchLogs = async () => {
+        if (mode !== "logs") return;
         try {
             const res = await fetch("/api/minecraft/logs");
             const data = await res.json();
             if (data.logs && Array.isArray(data.logs)) {
-                // If logs changed, update server log lines
                 setServerLogLines(data.logs);
             }
         } catch (e) {
-            console.error("Failed to fetch logs");
+            console.error("Error al cargar logs");
         }
     };
 
     useEffect(() => {
-        fetchLogs();
-        const interval = setInterval(fetchLogs, 3000);
-        return () => clearInterval(interval);
-    }, []);
+        if (mode === "logs") {
+            fetchLogs();
+            const interval = setInterval(fetchLogs, 3000);
+            return () => clearInterval(interval);
+        }
+    }, [mode]);
 
     useEffect(() => {
         scrollToBottom();
@@ -86,63 +94,73 @@ export default function ConsoleInterface({ readOnly = false }: { readOnly?: bool
                 addLog(data.response, "response");
             }
         } catch (error) {
-            addLog("Failed to reach RCON server", "error");
+            addLog("Error al conectar con el servidor RCON", "error");
         }
     };
 
     const clearConsole = () => {
         setLogs([]);
+        if (mode === "logs") setServerLogLines([]);
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-12rem)] gap-4">
+        <div className="flex flex-col h-[calc(100vh-10rem)] md:h-[calc(100vh-12rem)] gap-3 md:gap-4">
             <Card className="flex-1 bg-black/40 backdrop-blur-xl border-gray-800 p-0 overflow-hidden flex flex-col shadow-2xl rounded-xl">
-                <div className="flex justify-between items-center px-4 py-2 bg-gray-900/50 border-b border-gray-800">
+                <div className="flex justify-between items-center px-3 md:px-4 py-2 bg-gray-900/50 border-b border-gray-800 shrink-0">
                     <div className="flex items-center gap-2">
-                        <TerminalIcon className="h-4 w-4 text-primary" />
-                        <span className="text-xs font-bold uppercase tracking-wider text-gray-400">System Terminal</span>
+                        <TerminalIcon className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
+                        <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-gray-500">
+                            {mode === "console" ? "Terminal de Comandos" : "Visor de Registros (latest.log)"}
+                        </span>
                     </div>
-                    <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-white" onClick={fetchLogs}>
-                            <RotateCw className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-red-400" onClick={clearConsole}>
+                    <div className="flex gap-1 md:gap-2">
+                        {mode === "logs" && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7 md:h-8 md:w-8 text-gray-500 hover:text-white" onClick={fetchLogs}>
+                                <RotateCw className="h-3.5 w-3.5" />
+                            </Button>
+                        )}
+                        <Button variant="ghost" size="icon" className="h-7 w-7 md:h-8 md:w-8 text-gray-500 hover:text-red-400" onClick={clearConsole}>
                             <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                     </div>
                 </div>
 
-                <ScrollArea className="flex-1 p-4 font-mono text-sm" ref={logContainerRef}>
-                    <div className="space-y-0.5">
-                        {/* Server History Logs */}
-                        {serverLogLines.map((line, i) => (
-                            <div key={`server-${i}`} className="text-gray-500 whitespace-pre-wrap leading-tight">
+                <ScrollArea className="flex-1 p-3 md:p-4 font-mono text-[10px] md:text-sm" ref={logContainerRef}>
+                    {mode === "logs" && serverLogLines.length === 0 && (
+                        <div className="h-full flex flex-col items-center justify-center py-20 opacity-20">
+                            <FileText className="h-12 w-12 mb-4" />
+                            <p className="text-xs font-black uppercase tracking-widest">No hay registros disponibles</p>
+                        </div>
+                    )}
+
+                    {mode === "console" && logs.length === 0 && (
+                        <div className="h-full flex flex-col items-center justify-center py-20 opacity-20">
+                            <TerminalIcon className="h-12 w-12 mb-4" />
+                            <p className="text-xs font-black uppercase tracking-widest">Esperando instrucciones...</p>
+                        </div>
+                    )}
+
+                    <div className="space-y-0.5 md:space-y-1">
+                        {mode === "logs" && serverLogLines.map((line, i) => (
+                            <div key={`server-${i}`} className="text-gray-500 whitespace-pre-wrap leading-tight break-all md:break-normal">
                                 {line}
                             </div>
                         ))}
 
-                        {/* Status Separator if we have session logs */}
-                        {logs.length > 0 && (
-                            <div className="py-4 border-b border-dashed border-gray-800 flex justify-center">
-                                <span className="text-[10px] text-gray-600 bg-black px-2 uppercase tracking-widest">Active Session History</span>
-                            </div>
-                        )}
-
-                        {/* Current Session Commands & Responses */}
                         {logs.map((log) => (
                             <div
                                 key={log.id}
                                 className={cn(
-                                    "flex gap-2 py-0.5",
+                                    "flex gap-2 py-0.5 transition-colors",
                                     log.type === "command" && "text-primary bg-primary/5 -mx-4 px-4 border-l-2 border-primary",
-                                    log.type === "response" && "text-emerald-400",
+                                    log.type === "response" && "text-emerald-400 font-bold",
                                     log.type === "error" && "text-red-400",
                                     log.type === "log" && "text-gray-400"
                                 )}
                             >
-                                <span className="text-gray-600 shrink-0 select-none">[{log.timestamp.toLocaleTimeString([], { hour12: false })}]</span>
-                                {log.type === "command" && <ChevronRight className="h-4 w-4 mt-0.5 shrink-0" />}
-                                <span className="whitespace-pre-wrap">{log.content}</span>
+                                <span className="text-gray-600 shrink-0 select-none opacity-50">[{log.timestamp.toLocaleTimeString([], { hour12: false })}]</span>
+                                {log.type === "command" && <ChevronRight className="h-3.5 w-3.5 md:h-4 md:w-4 mt-0.5 shrink-0" />}
+                                <span className="whitespace-pre-wrap break-all md:break-normal">{log.content}</span>
                             </div>
                         ))}
                         <div ref={scrollRef} />
@@ -150,20 +168,20 @@ export default function ConsoleInterface({ readOnly = false }: { readOnly?: bool
                 </ScrollArea>
             </Card>
 
-            {!readOnly && (
-                <div className="relative group">
+            {mode === "console" && !readOnly && (
+                <div className="relative group shrink-0">
                     <form onSubmit={handleSend} className="relative flex items-center">
-                        <div className="absolute left-4 text-primary pointer-events-none">
-                            <ChevronRight className="h-5 w-5" />
+                        <div className="absolute left-3 md:left-4 text-primary pointer-events-none">
+                            <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
                         </div>
                         <Input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder="Type a server command..."
-                            className="bg-black/40 backdrop-blur-xl border-gray-800 pl-10 pr-12 h-12 font-mono focus:ring-primary focus:border-primary transition-all rounded-xl"
+                            placeholder="Enviar comando al servidor..."
+                            className="bg-black/40 backdrop-blur-xl border-gray-800 pl-9 md:pl-10 pr-12 h-11 md:h-12 font-mono text-xs md:text-sm focus:ring-primary/50 focus:border-primary transition-all rounded-xl"
                         />
-                        <div className="absolute right-2 px-1">
-                            <Button type="submit" size="sm" className="h-8 rounded-lg">
+                        <div className="absolute right-1.5 md:right-2">
+                            <Button type="submit" size="sm" className="h-8 md:h-9 px-3 rounded-lg bg-primary hover:bg-primary/90 text-black font-black">
                                 <Send className="h-3.5 w-3.5" />
                             </Button>
                         </div>
@@ -174,3 +192,5 @@ export default function ConsoleInterface({ readOnly = false }: { readOnly?: bool
         </div>
     );
 }
+
+

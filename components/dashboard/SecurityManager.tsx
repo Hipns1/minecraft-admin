@@ -71,67 +71,102 @@ export default function SecurityManager() {
     };
 
     return (
-        <div className="grid gap-6 md:grid-cols-2">
-            <Card className="bg-gray-950 border-gray-800">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <UserCheck className="h-5 w-5 text-green-500" />
-                        Whitelist
+        <div className="grid gap-6 md:grid-cols-2 max-w-6xl mx-auto">
+            <Card className="bg-black/40 backdrop-blur-xl border-gray-800 shadow-2xl rounded-2xl overflow-hidden flex flex-col">
+                <CardHeader className="bg-gray-900/40 border-b border-gray-800 p-6">
+                    <CardTitle className="flex items-center gap-3 text-lg font-black tracking-tight">
+                        <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
+                            <UserCheck className="h-5 w-5" />
+                        </div>
+                        Lista de Acceso (WL)
                     </CardTitle>
-                    <CardDescription>Only these players can join the server.</CardDescription>
+                    <CardDescription className="text-xs font-medium text-gray-500 uppercase tracking-wider mt-1">Usuarios autorizados para ingresar</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="p-6 space-y-6 flex-1">
                     <div className="flex gap-2">
                         <Input
-                            placeholder="Username"
+                            placeholder="Nombre de usuario"
                             value={newUsername}
                             onChange={(e) => setNewUsername(e.target.value)}
-                            className="bg-gray-900 border-gray-800"
+                            className="bg-gray-950/50 border-gray-800 h-10 text-sm focus:ring-primary/50"
                         />
-                        <Button onClick={() => runAction(`whitelist add ${newUsername}`, `Added ${newUsername} to whitelist`)}>Add</Button>
+                        <Button
+                            onClick={() => runAction(`whitelist add ${newUsername}`, `Se ha añadido a ${newUsername} a la lista`)}
+                            className="bg-primary text-black font-black text-xs px-6 hover:bg-primary/90"
+                        >
+                            AÑADIR
+                        </Button>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 no-scrollbar">
                         {isLoading ? (
-                            <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                            <div className="flex justify-center py-12">
+                                <Loader2 className="h-6 w-6 animate-spin text-primary opacity-50" />
+                            </div>
                         ) : whitelist.length > 0 ? (
                             whitelist.map(player => (
-                                <div key={player} className="flex items-center justify-between p-2 rounded bg-gray-900/50 border border-gray-800">
-                                    <span>{player}</span>
-                                    <Button variant="ghost" size="sm" className="text-red-400 hover:bg-red-950/30" onClick={() => runAction(`whitelist remove ${player}`, `Removed ${player} from whitelist`)}>
+                                <div key={player} className="flex items-center justify-between p-3 rounded-xl bg-gray-900/30 border border-gray-800/50 group hover:border-emerald-500/30 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+                                        <span className="text-sm font-bold text-gray-200">{player}</span>
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg"
+                                        onClick={() => runAction(`whitelist remove ${player}`, `Se ha eliminado a ${player} de la lista`)}
+                                    >
                                         <UserMinus className="h-4 w-4" />
                                     </Button>
                                 </div>
                             ))
                         ) : (
-                            <p className="text-center text-gray-500 text-sm py-4">Whitelist is empty or disabled.</p>
+                            <div className="text-center py-12 border-2 border-dashed border-gray-800/50 rounded-2xl opacity-40">
+                                <Shield className="h-8 w-8 mx-auto mb-2 text-gray-600" />
+                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Sin usuarios registrados</p>
+                            </div>
                         )}
                     </div>
                 </CardContent>
             </Card>
 
-            <Card className="bg-gray-950 border-gray-800">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Ban className="h-5 w-5 text-red-500" />
-                        Banned Players
+            <Card className="bg-black/40 backdrop-blur-xl border-gray-800 shadow-2xl rounded-2xl overflow-hidden flex flex-col">
+                <CardHeader className="bg-gray-900/40 border-b border-gray-800 p-6">
+                    <CardTitle className="flex items-center gap-3 text-lg font-black tracking-tight">
+                        <div className="p-2 rounded-lg bg-rose-500/10 text-rose-500">
+                            <Ban className="h-5 w-5" />
+                        </div>
+                        Usuarios Bloqueados
                     </CardTitle>
-                    <CardDescription>Players who are explicitly blocked from joining.</CardDescription>
+                    <CardDescription className="text-xs font-medium text-gray-500 uppercase tracking-wider mt-1">Identidades con acceso restringido</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
+                <CardContent className="p-6 space-y-6 flex-1">
+                    <div className="space-y-2 max-h-[464px] overflow-y-auto pr-2 no-scrollbar">
                         {isLoading ? (
-                            <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                            <div className="flex justify-center py-12">
+                                <Loader2 className="h-6 w-6 animate-spin text-primary opacity-50" />
+                            </div>
                         ) : bans.length > 0 ? (
                             bans.map(player => (
-                                <div key={player} className="flex items-center justify-between p-2 rounded bg-gray-900/50 border border-gray-800">
-                                    <span>{player}</span>
-                                    <Button variant="ghost" size="sm" className="text-green-400 hover:bg-green-950/30" onClick={() => runAction(`pardon ${player}`, `Unbanned ${player}`)}>
-                                        <Shield className="h-4 w-4" />
+                                <div key={player} className="flex items-center justify-between p-3 rounded-xl bg-gray-900/30 border border-gray-800/50 group hover:border-red-500/30 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]" />
+                                        <span className="text-sm font-bold text-gray-200">{player}</span>
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 text-[10px] font-black tracking-tighter text-emerald-400 hover:bg-emerald-500/10 rounded-lg border border-emerald-500/20"
+                                        onClick={() => runAction(`pardon ${player}`, `Se ha desbloqueado a ${player}`)}
+                                    >
+                                        PERDONAR
                                     </Button>
                                 </div>
                             ))
                         ) : (
-                            <p className="text-center text-gray-500 text-sm py-4">No banned players.</p>
+                            <div className="text-center py-12 border-2 border-dashed border-gray-800/50 rounded-2xl opacity-40">
+                                <Shield className="h-8 w-8 mx-auto mb-2 text-gray-600" />
+                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Sin objetivos restringidos</p>
+                            </div>
                         )}
                     </div>
                 </CardContent>

@@ -7,6 +7,8 @@ const execAsync = promisify(exec);
 const SERVICE_NAME = process.env.MC_SERVICE_NAME || "minecraft";
 const LOG_FILE_PATH = process.env.MC_LOG_FILE || "/opt/minecraft/logs/latest.log";
 
+import os from "os";
+
 export type ServerStatus = "online" | "offline" | "starting" | "stopping" | "unknown";
 
 import net from "net";
@@ -46,6 +48,17 @@ export async function getSystemStatus(): Promise<{
     let cpu = "0%";
     let memory = "0MB";
 
+    // Global System Stats as base
+    const freeMem = os.freemem();
+    const totalMem = os.totalmem();
+    const usedMem = totalMem - freeMem;
+    const cpuLoad = os.loadavg()[0]; // 1 min load
+    const cpuCount = os.cpus().length;
+
+    // Default fallback values (Host stats)
+    memory = `${Math.round(usedMem / 1024 / 1024 / 1024)}GB`;
+    cpu = `${Math.round((cpuLoad / cpuCount) * 100)}%`;
+
     try {
         // 1. Try systemd status
         const { stdout } = await execAsync(`systemctl is-active ${SERVICE_NAME}`).catch(() => ({ stdout: "" }));
@@ -69,14 +82,14 @@ export async function getSystemStatus(): Promise<{
                 const psMatch = psOutput.trim().split(/\s+/);
                 if (psMatch.length >= 2) cpu = `${psMatch[0]}%`;
             } catch (e) {
-                console.error("Error parsing system status details:", e);
+                // Keep the global stats if specific process stats fail
             }
         } else {
             // 2. Fallback: Check if RCON port is open (Useful for Docker)
             const rconOpen = await isPortOpen(RCON_PORT, RCON_HOST);
             if (rconOpen) {
                 active = true;
-                uptime = "Running (Container Mode)";
+                uptime = "En ejecución (Contenedor)";
             }
         }
 
@@ -84,7 +97,7 @@ export async function getSystemStatus(): Promise<{
     } catch (error) {
         // Last resort fallback
         const rconOpen = await isPortOpen(RCON_PORT, RCON_HOST);
-        return { active: rconOpen, uptime: rconOpen ? "Online" : "0", cpu: "0%", memory: "0MB" };
+        return { active: rconOpen, uptime: rconOpen ? "En línea" : "0", cpu, memory };
     }
 }
 

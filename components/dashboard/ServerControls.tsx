@@ -1,10 +1,11 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Play, Square, RotateCcw } from "lucide-react";
+import { Play, Square, RotateCw, Loader2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export function ServerControls({ active }: { active: boolean }) {
     const [isPending, startTransition] = useTransition();
@@ -20,19 +21,18 @@ export function ServerControls({ active }: { active: boolean }) {
                     body: JSON.stringify({ action }),
                 });
 
-                if (!res.ok) throw new Error("Failed to execute command");
+                if (!res.ok) throw new Error("Error al ejecutar comando");
 
                 toast({
-                    title: "Command Sent",
-                    description: `Server ${action} command executed successfully.`,
+                    title: "Comando Enviado",
+                    description: `El comando ${action} se ha enviado correctamente.`,
                 });
 
-                // Refresh the page to update status
                 router.refresh();
             } catch (error) {
                 toast({
                     title: "Error",
-                    description: "Failed to control server.",
+                    description: "No se pudo controlar el servidor.",
                     variant: "destructive",
                 });
             }
@@ -42,31 +42,38 @@ export function ServerControls({ active }: { active: boolean }) {
     return (
         <div className="flex flex-wrap gap-4">
             <Button
+                size="lg"
                 onClick={() => handleControl("start")}
                 disabled={active || isPending}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white border-b-4 border-emerald-800 active:border-b-0 active:translate-y-[2px] transition-all h-12 px-6 font-bold"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-8 py-6 rounded-xl shadow-lg shadow-emerald-500/20 flex-1 min-w-[140px]"
             >
-                <Play className="mr-2 h-5 w-5 fill-current" /> Initialize Server
+                {isPending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Play className="mr-2 h-5 w-5" />}
+                INICIAR
             </Button>
             <Button
-                onClick={() => handleControl("stop")}
-                disabled={!active || isPending}
-                variant="destructive"
-                className="bg-rose-600 hover:bg-rose-500 text-white border-b-4 border-rose-800 active:border-b-0 active:translate-y-[2px] transition-all h-12 px-6 font-bold"
-            >
-                <Square className="mr-2 h-5 w-5 fill-current" /> Terminate Process
-            </Button>
-            <Button
+                size="lg"
+                variant="outline"
                 onClick={() => handleControl("restart")}
                 disabled={!active || isPending}
-                className="bg-gray-800 hover:bg-gray-700 text-white border-b-4 border-gray-950 active:border-b-0 active:translate-y-[2px] transition-all h-12 px-6 font-bold"
+                className="border-gray-800 hover:bg-gray-800 text-gray-300 font-bold px-8 py-6 rounded-xl flex-1 min-w-[140px]"
             >
-                <RotateCcw className="mr-2 h-5 w-5" /> Reboot System
+                <RotateCw className={cn("mr-2 h-5 w-5", isPending && "animate-spin")} />
+                REINICIAR
+            </Button>
+            <Button
+                size="lg"
+                variant="destructive"
+                onClick={() => handleControl("stop")}
+                disabled={!active || isPending}
+                className="bg-rose-600 hover:bg-rose-500 text-white font-black px-8 py-6 rounded-xl shadow-lg shadow-rose-500/20 flex-1 min-w-[140px]"
+            >
+                {isPending ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Square className="mr-2 h-5 w-5" />}
+                DETENER
             </Button>
 
             {isPending && (
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary animate-pulse ml-auto">
-                    Executing Command...
+                    Ejecutando Comando...
                 </div>
             )}
         </div>

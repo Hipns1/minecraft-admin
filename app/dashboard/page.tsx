@@ -49,8 +49,8 @@ export default async function DashboardPage() {
         <div className="space-y-8 max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h1 className="text-4xl font-black tracking-tighter">Command Center</h1>
-                    <p className="text-gray-500 font-medium">Monitoring {process.env.MC_SERVICE_NAME || "Minecraft"} operations</p>
+                    <h1 className="text-4xl font-black tracking-tighter">Centro de Comando</h1>
+                    <p className="text-gray-500 font-medium">Monitoreando operaciones de {process.env.MC_SERVICE_NAME || "Minecraft"}</p>
                 </div>
                 <div className="flex items-center gap-3 bg-gray-950/50 p-1.5 rounded-xl border border-gray-800">
                     <div className={cn(
@@ -58,37 +58,37 @@ export default async function DashboardPage() {
                         status.active ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-rose-500"
                     )} />
                     <span className="text-xs font-bold uppercase tracking-widest pr-2">
-                        System {status.active ? "Live" : "Standby"}
+                        Sistema {status.active ? "En Línea" : "En Espera"}
                     </span>
                 </div>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                 <StatusCard
-                    title="Instance Version"
-                    value={status.active ? version : "Offline"}
+                    title="Versión de Instancia"
+                    value={status.active ? version : "Desconectado"}
                     icon={Shield}
                     variant={status.active ? "success" : "destructive"}
-                    subtext={status.active ? "Stable Build" : "Core Suspended"}
+                    subtext={status.active ? "Versión Estable" : "Núcleo Suspendido"}
                 />
                 <StatusCard
-                    title="Active Entities"
+                    title="Entidades Activas"
                     value={`${playerCount} / ${maxPlayers}`}
                     icon={Users}
                     variant={status.active && playerCount > 0 ? "warning" : "default"}
-                    subtext={`${playerCount} players currently synced`}
+                    subtext={`${playerCount} usuarios sincronizados`}
                 />
                 <StatusCard
-                    title="Persistence"
+                    title="Persistencia"
                     value={status.uptime || "0s"}
                     icon={Clock}
-                    subtext="Continuous operational time"
+                    subtext="Tiempo de operación continua"
                 />
                 <StatusCard
-                    title="System Load"
+                    title="Carga del Sistema"
                     value={status.active ? `${status.cpu}` : "0%"}
                     icon={Cpu}
-                    subtext={`Memory: ${status.memory}`}
+                    subtext={`Memoria: ${status.memory}`}
                 />
             </div>
 
@@ -98,7 +98,7 @@ export default async function DashboardPage() {
                         <div className="p-6 border-b border-gray-800 bg-gray-900/50">
                             <h3 className="text-lg font-bold flex items-center gap-2">
                                 <TerminalIcon className="h-5 w-5 text-primary" />
-                                Power Management
+                                Gestión de Energía
                             </h3>
                         </div>
                         <div className="p-8">
@@ -110,13 +110,13 @@ export default async function DashboardPage() {
                 <div className="col-span-full lg:col-span-3">
                     <Card className="h-full bg-black/40 backdrop-blur-xl border-gray-800 rounded-2xl overflow-hidden flex flex-col">
                         <div className="p-6 border-b border-gray-800 bg-gray-900/50 flex justify-between items-center">
-                            <h3 className="text-lg font-bold">Quick Actions</h3>
+                            <h3 className="text-lg font-bold">Acciones Rápidas</h3>
                         </div>
                         <div className="p-6 grid grid-cols-2 gap-3">
-                            <QuickAction icon={Shield} label="Security" href="/dashboard/security" color="text-amber-500" />
-                            <QuickAction icon={FolderTree} label="Mods" href="/dashboard/files" color="text-blue-500" />
-                            <QuickAction icon={Users} label="Players" href="/dashboard/players" color="text-emerald-500" />
-                            <QuickAction icon={TerminalIcon} label="Console" href="/dashboard/console" color="text-primary" />
+                            <QuickAction icon={Shield} label="Seguridad" href="/dashboard/players" color="text-amber-500" />
+                            <QuickAction icon={FolderTree} label="Archivos" href="/dashboard/files" color="text-blue-500" />
+                            <QuickAction icon={Users} label="Usuarios" href="/dashboard/players" color="text-emerald-500" />
+                            <QuickAction icon={TerminalIcon} label="Consola" href="/dashboard/console" color="text-primary" />
                         </div>
                     </Card>
                 </div>
@@ -129,7 +129,7 @@ function QuickAction({ icon: Icon, label, href, color }: { icon: any, label: str
     return (
         <a href={href} className="flex flex-col items-center justify-center p-4 rounded-xl border border-gray-800 bg-gray-900/40 hover:bg-gray-800/60 hover:border-gray-700 transition-all group">
             <Icon className={cn("h-6 w-6 mb-2 transition-transform group-hover:scale-110", color)} />
-            <span className="text-xs font-bold uppercase tracking-tighter text-gray-400 group-hover:text-white">{label}</span>
+            <span className="text-[10px] font-black uppercase tracking-tighter text-gray-500 group-hover:text-white">{label}</span>
         </a>
     );
 }
