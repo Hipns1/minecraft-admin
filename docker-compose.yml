@@ -3,18 +3,10 @@ services:
     build: .
     container_name: minecraft-admin
     restart: always
-    ports:
-      - "3001:3001"
+    network_mode: host
     env_file:
       - .env
-    # Note: To control host systemd, you typically need to mount these volumes 
-    # and run as a specific user or with specific privileges.
-    # volumes:
-    #   - /var/run/dbus:/var/run/dbus
-    #   - /run/systemd/system:/run/systemd/system
-    networks:
-      - mc-network
-
-networks:
-  mc-network:
-    driver: bridge
+    volumes:
+      - /home/serveradmin/minecraft/logs:/home/serveradmin/minecraft/logs:ro
+    # Note: Using network_mode: host will use the host's 3001 port directly.
+    # Ensure the path /home/serveradmin/minecraft/logs is correct on your host machine.

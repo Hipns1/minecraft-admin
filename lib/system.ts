@@ -9,26 +9,51 @@ const LOG_FILE_PATH = process.env.MC_LOG_FILE || "/opt/minecraft/logs/latest.log
 
 export type ServerStatus = "online" | "offline" | "starting" | "stopping" | "unknown";
 
+import net from "net";
+
+const RCON_HOST = process.env.RCON_HOST || "127.0.0.1";
+const RCON_PORT = parseInt(process.env.RCON_PORT || "25575");
+
+async function isPortOpen(port: number, host: string): Promise<boolean> {
+    return new Promise((resolve) => {
+        const socket = new net.Socket();
+        const timeout = 1000;
+
+        socket.setTimeout(timeout);
+        socket.once('error', () => {
+            socket.destroy();
+            resolve(false);
+        });
+        socket.once('timeout', () => {
+            socket.destroy();
+            resolve(false);
+        });
+        socket.connect(port, host, () => {
+            socket.end();
+            resolve(true);
+        });
+    });
+}
+
 export async function getSystemStatus(): Promise<{
     active: boolean;
     uptime: string;
     cpu: string;
     memory: string;
 }> {
-    try {
-        // Check systemd status
-        const { stdout } = await execAsync(`systemctl is-active ${SERVICE_NAME}`);
-        const active = stdout.trim() === "active";
+    let active = false;
+    let uptime = "0";
+    let cpu = "0%";
+    let memory = "0MB";
 
-        let uptime = "0";
-        let cpu = "0%";
-        let memory = "0%";
+    try {
+        // 1. Try systemd status
+        const { stdout } = await execAsync(`systemctl is-active ${SERVICE_NAME}`).catch(() => ({ stdout: "" }));
+        active = stdout.trim() === "active";
 
         if (active) {
             try {
                 const { stdout: statusOutput } = await execAsync(`systemctl status ${SERVICE_NAME}`);
-
-                // Parse Uptime
                 const activeMatch = statusOutput.match(/Active: active \(running\) since (.+);/);
                 if (activeMatch) {
                     const startTime = new Date(activeMatch[1]);
@@ -37,31 +62,29 @@ export async function getSystemStatus(): Promise<{
                     const minutes = Math.floor((diff % 3600) / 60);
                     uptime = `${hours}h ${minutes}m`;
                 }
-
-                // Parse Memory
                 const memMatch = statusOutput.match(/Memory: ([\d.]+[KMG])/);
-                if (memMatch) {
-                    memory = memMatch[1];
-                }
+                if (memMatch) memory = memMatch[1];
 
-                // Parse CPU (usually shows total time, but we can try to get current % if available)
-                // Systemd 'CPU:' field is total CPU time. For % we might need 'top' or 'ps'.
-                // Let's stick to total time or a simple ps check.
-                const { stdout: psOutput } = await execAsync(`ps -C java -o %cpu,%mem --no-headers | head -n 1`);
+                const { stdout: psOutput } = await execAsync(`ps -C java -o %cpu,%mem --no-headers | head -n 1`).catch(() => ({ stdout: "" }));
                 const psMatch = psOutput.trim().split(/\s+/);
-                if (psMatch.length >= 2) {
-                    cpu = `${psMatch[0]}%`;
-                    // If we want more accurate memory than systemd's Memory: field
-                    // memory = `${psMatch[1]}%`; 
-                }
+                if (psMatch.length >= 2) cpu = `${psMatch[0]}%`;
             } catch (e) {
                 console.error("Error parsing system status details:", e);
+            }
+        } else {
+            // 2. Fallback: Check if RCON port is open (Useful for Docker)
+            const rconOpen = await isPortOpen(RCON_PORT, RCON_HOST);
+            if (rconOpen) {
+                active = true;
+                uptime = "Running (Container Mode)";
             }
         }
 
         return { active, uptime, cpu, memory };
     } catch (error) {
-        return { active: false, uptime: "0", cpu: "0%", memory: "0MB" };
+        // Last resort fallback
+        const rconOpen = await isPortOpen(RCON_PORT, RCON_HOST);
+        return { active: rconOpen, uptime: rconOpen ? "Online" : "0", cpu: "0%", memory: "0MB" };
     }
 }
 
