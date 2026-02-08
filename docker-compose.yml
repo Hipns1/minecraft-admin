@@ -6,7 +6,7 @@ services:
     container_name: minecraft-admin
     restart: always
     ports:
-      - "3000:3000"
+      - "3001:3001"
     env_file:
       - .env
     # Note: To control host systemd, you typically need to mount these volumes 
