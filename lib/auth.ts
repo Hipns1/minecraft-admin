@@ -5,6 +5,7 @@ import { z } from "zod"
 
 export const { handlers: { GET, POST }, auth, signIn, signOut } = NextAuth({
     ...authConfig,
+    trustHost: true,
     providers: [
         Credentials({
             async authorize(credentials) {
