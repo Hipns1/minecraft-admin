@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import FileManager from "@/components/dashboard/FileManager";
+import { FileManager } from "@/components/dashboard/FileManager";
 
 export default async function FilesPage() {
     const session = await auth();
