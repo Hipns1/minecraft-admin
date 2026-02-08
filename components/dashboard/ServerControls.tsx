@@ -40,28 +40,35 @@ export function ServerControls({ active }: { active: boolean }) {
     };
 
     return (
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
             <Button
                 onClick={() => handleControl("start")}
                 disabled={active || isPending}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white border-b-4 border-emerald-800 active:border-b-0 active:translate-y-[2px] transition-all h-12 px-6 font-bold"
             >
-                <Play className="mr-2 h-4 w-4" /> Start
+                <Play className="mr-2 h-5 w-5 fill-current" /> Initialize Server
             </Button>
             <Button
                 onClick={() => handleControl("stop")}
                 disabled={!active || isPending}
                 variant="destructive"
+                className="bg-rose-600 hover:bg-rose-500 text-white border-b-4 border-rose-800 active:border-b-0 active:translate-y-[2px] transition-all h-12 px-6 font-bold"
             >
-                <Square className="mr-2 h-4 w-4" /> Stop
+                <Square className="mr-2 h-5 w-5 fill-current" /> Terminate Process
             </Button>
             <Button
                 onClick={() => handleControl("restart")}
                 disabled={!active || isPending}
-                variant="secondary"
+                className="bg-gray-800 hover:bg-gray-700 text-white border-b-4 border-gray-950 active:border-b-0 active:translate-y-[2px] transition-all h-12 px-6 font-bold"
             >
-                <RotateCcw className="mr-2 h-4 w-4" /> Restart
+                <RotateCcw className="mr-2 h-5 w-5" /> Reboot System
             </Button>
+
+            {isPending && (
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary animate-pulse ml-auto">
+                    Executing Command...
+                </div>
+            )}
         </div>
     );
 }

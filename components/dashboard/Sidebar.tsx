@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Terminal, Users, FileText, Settings, LogOut, Power } from "lucide-react";
+import { LayoutDashboard, Terminal, Users, FileText, Settings, LogOut, Power, Shield, FolderTree } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signOut } from "next-auth/react";
 
@@ -11,6 +11,8 @@ const NAV_ITEMS = [
     { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
     { label: "Console", href: "/dashboard/console", icon: Terminal },
     { label: "Players", href: "/dashboard/players", icon: Users },
+    { label: "Security", href: "/dashboard/security", icon: Shield },
+    { label: "Files & Mods", href: "/dashboard/files", icon: FolderTree },
     { label: "Logs", href: "/dashboard/logs", icon: FileText },
 ];
 
