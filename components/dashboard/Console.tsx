@@ -15,6 +15,16 @@ interface LogLine {
     timestamp: Date;
 }
 
+const QUICK_COMMANDS = [
+    { label: "Whitelist", cmd: "whitelist list", icon: FileText },
+    { label: "Jugadores", cmd: "list", icon: TerminalIcon },
+    { label: "Rendimiento", cmd: "tps", icon: RotateCw },
+    { label: "Guardar", cmd: "save-all", icon: Send },
+    { label: "Semilla", cmd: "seed", icon: ChevronRight },
+    { label: "Día", cmd: "time set day", icon: RotateCw },
+    { label: "Despejar", cmd: "weather clear", icon: RotateCw },
+];
+
 export default function ConsoleInterface({
     readOnly = false,
     mode = "console",
@@ -110,6 +120,41 @@ export default function ConsoleInterface({
         }
     };
 
+    const handleQuickCommand = (cmd: string) => {
+        setInput(cmd);
+        // We don't automatically send it to give user a chance to modify, 
+        // but the user might prefer it to just send. Let's make it send immediately.
+        const fakeEvent = { preventDefault: () => { } } as React.FormEvent;
+
+        // Use a timeout to ensure state update for input if needed, 
+        // but better to just call the logic directly.
+        sendManualCommand(cmd);
+    };
+
+    const sendManualCommand = async (command: string) => {
+        if (!command.trim()) return;
+
+        addLog(command, "command");
+
+        try {
+            const res = await fetch("/api/minecraft/rcon", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ command }),
+            });
+
+            const data = await res.json();
+
+            if (data.error) {
+                addLog(`Error: ${data.error}`, "error");
+            } else if (data.response) {
+                addLog(data.response, "response");
+            }
+        } catch (error) {
+            addLog("Error al conectar con el servidor RCON", "error");
+        }
+    };
+
     const clearConsole = () => {
         setLogs([]);
         if (mode === "logs") setServerLogLines([]);
@@ -181,24 +226,42 @@ export default function ConsoleInterface({
             </Card>
 
             {mode === "console" && !readOnly && (
-                <div className="relative group shrink-0">
-                    <form onSubmit={handleSend} className="relative flex items-center">
-                        <div className="absolute left-3 md:left-4 text-primary pointer-events-none">
-                            <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
-                        </div>
-                        <Input
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder="Enviar comando al servidor..."
-                            className="bg-black/40 backdrop-blur-xl border-gray-800 pl-9 md:pl-10 pr-12 h-11 md:h-12 font-mono text-xs md:text-sm focus:ring-primary/50 focus:border-primary transition-all rounded-xl"
-                        />
-                        <div className="absolute right-1.5 md:right-2">
-                            <Button type="submit" size="sm" className="h-8 md:h-9 px-3 rounded-lg bg-primary hover:bg-primary/90 text-black font-black">
-                                <Send className="h-3.5 w-3.5" />
+                <div className="flex flex-col gap-3 shrink-0">
+                    {/* Quick Commands Bar */}
+                    <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                        {QUICK_COMMANDS.map((q) => (
+                            <Button
+                                key={q.cmd}
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleQuickCommand(q.cmd)}
+                                className="h-8 bg-gray-950/40 border-gray-800 text-[10px] md:text-xs font-black uppercase text-gray-500 hover:text-primary hover:border-primary/50 hover:bg-primary/5 rounded-lg whitespace-nowrap transition-all px-3"
+                            >
+                                <q.icon className="h-3 w-3 mr-2 opacity-50" />
+                                {q.label}
                             </Button>
-                        </div>
-                    </form>
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-blue-500/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition duration-500 -z-10" />
+                        ))}
+                    </div>
+
+                    <div className="relative group">
+                        <form onSubmit={handleSend} className="relative flex items-center">
+                            <div className="absolute left-3 md:left-4 text-primary pointer-events-none">
+                                <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
+                            </div>
+                            <Input
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                placeholder="Enviar comando al servidor..."
+                                className="bg-black/40 backdrop-blur-xl border-gray-800 pl-9 md:pl-10 pr-12 h-11 md:h-12 font-mono text-xs md:text-sm focus:ring-primary/50 focus:border-primary transition-all rounded-xl"
+                            />
+                            <div className="absolute right-1.5 md:right-2">
+                                <Button type="submit" size="sm" className="h-8 md:h-9 px-3 rounded-lg bg-primary hover:bg-primary/90 text-black font-black">
+                                    <Send className="h-3.5 w-3.5" />
+                                </Button>
+                            </div>
+                        </form>
+                        <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-blue-500/20 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition duration-500 -z-10" />
+                    </div>
                 </div>
             )}
         </div>
