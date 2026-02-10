@@ -4,10 +4,14 @@ import ConsoleInterface from "@/components/dashboard/Console";
 import { FileText, ChevronRight, Clock, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { useSearchParams } from "next/navigation";
 
 export default function LogsPage() {
+    const searchParams = useSearchParams();
+    const fileFromUrl = searchParams.get("file");
+
     const [logFiles, setLogFiles] = useState<any[]>([]);
-    const [selectedFile, setSelectedFile] = useState("latest.log");
+    const [selectedFile, setSelectedFile] = useState(fileFromUrl || "latest.log");
     const [isLoadingFiles, setIsLoadingFiles] = useState(true);
 
     const fetchLogFiles = async () => {
@@ -31,6 +35,13 @@ export default function LogsPage() {
     useEffect(() => {
         fetchLogFiles();
     }, []);
+
+    // Update selected file when URL param changes
+    useEffect(() => {
+        if (fileFromUrl) {
+            setSelectedFile(fileFromUrl);
+        }
+    }, [fileFromUrl]);
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto pb-10">

@@ -1,18 +1,17 @@
 "use client";
 // File Manager Component
 
-
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Folder, File, Loader2, FolderTree, Package, Box, Globe, Settings, FileText, RotateCw, Plus, Archive } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Folder, File, Loader2, FolderTree, Package, FileText, RotateCw, Plus, Search, X, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 const SECTIONS = [
     { id: "plugins", label: "Plugins", icon: FolderTree },
     { id: "mods", label: "Mods", icon: Package },
-    { id: "backups", label: "Backups", icon: Archive },
-    { id: "config", label: "Configuración", icon: Settings },
     { id: "logs", label: "Registros", icon: FileText },
 ];
 
@@ -25,15 +24,41 @@ const AVAILABLE_PLUGINS = [
     { name: "ClearLag", version: "3.2.2", description: "Optimización remota de entidades y reducción de lag del servidor.", scope: "Rendimiento", type: "plugins" },
     { name: "Multiverse-Core", version: "4.3.1", description: "Gestión de múltiples mundos simultáneos en el servidor.", scope: "Mundos", type: "plugins" },
     { name: "ViaVersion", version: "4.4.2", description: "Permite que versiones más nuevas de Minecraft entren al servidor.", scope: "Compatibilidad", type: "plugins" },
+    { name: "Dynmap", version: "3.4", description: "Mapa web en tiempo real del servidor con interfaz interactiva.", scope: "Web / Visual", type: "plugins" },
+    { name: "ProtocolLib", version: "5.0.0", description: "Biblioteca para manipular paquetes de red de Minecraft.", scope: "Sistema / API", type: "plugins" },
+    { name: "WorldGuard", version: "7.0.7", description: "Protección avanzada de regiones y control de permisos por área.", scope: "Seguridad / Protección", type: "plugins" },
+    { name: "Citizens", version: "2.0.30", description: "Framework completo para crear y gestionar NPCs personalizados.", scope: "NPCs / Funcional", type: "plugins" },
+    { name: "mcMMO", version: "2.1.215", description: "Sistema RPG con skills, niveles y habilidades especiales.", scope: "RPG / Jugabilidad", type: "plugins" },
+    { name: "GriefPrevention", version: "16.18", description: "Protección automática de terrenos sin comandos complicados.", scope: "Protección / Claims", type: "plugins" },
+    { name: "CoreProtect", version: "21.2", description: "Logger completo de bloques y acciones para rollback.", scope: "Admin / Seguridad", type: "plugins" },
+    { name: "PlaceholderAPI", version: "2.11.2", description: "API para usar placeholders dinámicos en otros plugins.", scope: "Sistema / API", type: "plugins" },
+    { name: "HolographicDisplays", version: "3.0.0", description: "Creación de textos flotantes y hologramas personalizables.", scope: "Visual / Decoración", type: "plugins" },
+    { name: "ViaBackwards", version: "4.5.1", description: "Permite que versiones antiguas de Minecraft se conecten al servidor.", scope: "Compatibilidad", type: "plugins" },
+    { name: "FastAsyncWorldEdit", version: "2.5.0", description: "Versión optimizada de WorldEdit para ediciones masivas.", scope: "Construcción / Performance", type: "plugins" },
+    { name: "ChestShop", version: "3.12", description: "Sistema de tiendas con cofres para compraventa automática.", scope: "Economía / Comercio", type: "plugins" },
 ];
 
 const AVAILABLE_MODS = [
-    { name: "JourneyMap", version: "1.19.2", description: "Mapa detallado en tiempo real con minimapa e interfaz completa.", scope: "Interfaz / Jugador", type: "mods" },
+    { name: "JourneyMap", version: "1.19.2-5.9.7", description: "Mapa detallado en tiempo real con minimapa e interfaz completa.", scope: "Interfaz / Jugador", type: "mods" },
     { name: "JEI (Just Enough Items)", version: "10.0.0", description: "Visualizador de recetas y buscador de todos los bloques del juego.", scope: "Interfaz / Guía", type: "mods" },
     { name: "Mouse Tweaks", version: "2.22", description: "Mejoras drásticas de usabilidad para el inventario y cofres.", scope: "Jugabilidad", type: "mods" },
     { name: "AppleSkin", version: "2.4.0", description: "Muestra información de saturación y nutrición en la barra de comida.", scope: "Visual / HUD", type: "mods" },
     { name: "Clumps", version: "9.0.0", description: "Agrupa los orbes de experiencia en uno solo para reducir lag.", scope: "Rendimiento", type: "mods" },
     { name: "Simple Voice Chat", version: "2.3.2", description: "Chat de voz por proximidad integrado directamente en el juego.", scope: "Social / Audio", type: "mods" },
+    { name: "Sodium", version: "0.4.10", description: "Optimización extrema de renderizado y FPS.", scope: "Rendimiento / Gráficos", type: "mods" },
+    { name: "Iris Shaders", version: "1.6.4", description: "Soporte completo para shaders con compatibilidad Sodium.", scope: "Gráficos / Visual", type: "mods" },
+    { name: "Lithium", version: "0.11.1", description: "Optimización general del servidor y lógica del juego.", scope: "Rendimiento / Server", type: "mods" },
+    { name: "Phosphor", version: "0.8.1", description: "Optimización del motor de iluminación del juego.", scope: "Rendimiento / Lighting", type: "mods" },
+    { name: "Mod Menu", version: "6.1.0", description: "Interfaz para configurar mods instalados sin editar archivos.", scope: "Utilidad / Config", type: "mods" },
+    { name: "Xaero's Minimap", version: "23.1.0", description: "Minimapa liviano y altamente personalizable.", scope: "Interfaz / Navegación", type: "mods" },
+    { name: "Waystones", version: "11.4.0", description: "Puntos de teletransporte entre ubicaciones importantes.", scope: "Transporte / Funcional", type: "mods" },
+    { name: "Farmers Delight", version: "1.2.1", description: "Expansión completa del sistema de agricultura y cocina.", scope: "Contenido / Farming", type: "mods" },
+    { name: "Create", version: "0.5.1", description: "Mecánicas avanzadas de maquinaria y automatización.", scope: "Tecnología / Funcional", type: "mods" },
+    { name: "Biomes O' Plenty", version: "17.1.2", description: "Añade más de 80 biomas nuevos al mundo.", scope: "Worldgen / Exploración", type: "mods" },
+    { name: "Iron Chests", version: "14.2.5", description: "Cofres mejorados con mayor capacidad de almacenamiento.", scope: "Almacenamiento / QoL", type: "mods" },
+    { name: "The Twilight Forest", version: "4.2.1518", description: "Nueva dimensión con jefes, mazmorras y estructuras.", scope: "Aventura / Dimensión", type: "mods" },
+    { name: "Tinkers Construct", version: "3.6.4", description: "Sistema modular para crear herramientas personalizadas.", scope: "Herramientas / Crafting", type: "mods" },
+    { name: "Pam's HarvestCraft", version: "9.1.0", description: "Cientos de nuevos cultivos, árboles y recetas de comida.", scope: "Farming / Comida", type: "mods" },
 ];
 
 function formatBytes(bytes: number, decimals = 2) {
@@ -46,9 +71,12 @@ function formatBytes(bytes: number, decimals = 2) {
 }
 
 export function FileManager() {
+    const router = useRouter();
     const [currentDir, setCurrentDir] = useState("plugins");
     const [files, setFiles] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
 
     const fetchFiles = async (dir: string) => {
         setIsLoading(true);
@@ -81,6 +109,7 @@ export function FileManager() {
             }
         } catch (e) {
             console.error("No se pudieron cargar los archivos");
+            setFiles([]);
         } finally {
             setIsLoading(false);
         }
@@ -90,8 +119,66 @@ export function FileManager() {
         fetchFiles(currentDir);
     }, [currentDir]);
 
+    const handleRemove = async (fileName: string) => {
+        if (!confirm(`¿Estás seguro de que deseas eliminar ${fileName}?`)) return;
+
+        setActionLoading(fileName);
+        try {
+            const res = await fetch('/api/minecraft/manage-plugin', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fileName, type: currentDir })
+            });
+
+            if (res.ok) {
+                await fetchFiles(currentDir);
+            } else {
+                alert('Error al eliminar el archivo');
+            }
+        } catch (e) {
+            alert('Error al eliminar el archivo');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleAdd = async (pluginName: string) => {
+        setActionLoading(pluginName);
+        try {
+            const res = await fetch('/api/minecraft/manage-plugin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pluginName, type: currentDir })
+            });
+
+            if (res.ok) {
+                await fetchFiles(currentDir);
+            } else {
+                const data = await res.json();
+                alert(data.error || 'Error al agregar el plugin/mod');
+            }
+        } catch (e) {
+            alert('Error al agregar el plugin/mod');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleViewLog = (fileName: string) => {
+        // Redirect to logs page with the selected file
+        router.push(`/dashboard/logs?file=${encodeURIComponent(fileName)}`);
+    };
+
     const isPluginsOrMods = currentDir === "plugins" || currentDir === "mods";
+    const isLogs = currentDir === "logs";
     const availableItems = currentDir === "plugins" ? AVAILABLE_PLUGINS : AVAILABLE_MODS;
+
+    // Filter available items based on search
+    const filteredAvailableItems = availableItems.filter(item =>
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.scope.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
         <div className="flex flex-col lg:grid gap-6 lg:grid-cols-4">
@@ -133,8 +220,8 @@ export function FileManager() {
                 {isPluginsOrMods ? (
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                         {/* Installed Section */}
-                        <CustomCard title={`Instalados (${files.length})`} icon={<Box className="h-4 w-4" />}>
-                            <div className="divide-y divide-gray-800/50">
+                        <CustomCard title={`Instalados (${files.length})`} icon={<Package className="h-4 w-4" />}>
+                            <div className="divide-y divide-gray-800/50 max-h-[600px] overflow-y-auto">
                                 {isLoading ? (
                                     <LoadingState />
                                 ) : files.length > 0 ? (
@@ -152,8 +239,14 @@ export function FileManager() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 h-8 text-[10px] font-black text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg">
-                                                QUITAR
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleRemove(file.name)}
+                                                disabled={actionLoading === file.name}
+                                                className="opacity-0 group-hover:opacity-100 h-8 text-[10px] font-black text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg disabled:opacity-50"
+                                            >
+                                                {actionLoading === file.name ? <Loader2 className="h-3 w-3 animate-spin" /> : "QUITAR"}
                                             </Button>
                                         </div>
                                     ))
@@ -163,42 +256,75 @@ export function FileManager() {
 
                         {/* Available Section */}
                         <CustomCard title="Catálogo Disponible" icon={<Plus className="h-4 w-4" />}>
-                            <div className="divide-y divide-gray-800/50">
-                                {availableItems.map(item => (
-                                    <div key={item.name} className="flex flex-col p-4 hover:bg-white/[0.02] transition-colors group gap-3">
-                                        <div className="flex items-center justify-between min-w-0">
-                                            <div className="flex items-center gap-3 min-w-0">
-                                                <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
-                                                    <Plus className="h-4 w-4" />
+                            {/* Search Bar */}
+                            <div className="p-4 border-b border-gray-800/50 bg-gray-900/20">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                                    <Input
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        placeholder="Buscar plugins/mods..."
+                                        className="pl-10 pr-10 bg-black/40 border-gray-700 focus:border-primary h-9 text-sm"
+                                    />
+                                    {searchQuery && (
+                                        <button
+                                            onClick={() => setSearchQuery("")}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="divide-y divide-gray-800/50 max-h-[550px] overflow-y-auto">
+                                {filteredAvailableItems.length > 0 ? (
+                                    filteredAvailableItems.map(item => (
+                                        <div key={item.name} className="flex flex-col p-4 hover:bg-white/[0.02] transition-colors group gap-3">
+                                            <div className="flex items-center justify-between min-w-0">
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                                                        <Plus className="h-4 w-4" />
+                                                    </div>
+                                                    <div className="truncate">
+                                                        <p className="text-sm font-bold text-gray-200 truncate">{item.name}</p>
+                                                        <p className="text-[10px] text-gray-500 uppercase font-bold">{item.version}</p>
+                                                    </div>
                                                 </div>
-                                                <div className="truncate">
-                                                    <p className="text-sm font-bold text-gray-200 truncate">{item.name}</p>
-                                                    <p className="text-[10px] text-gray-500 uppercase font-bold">{item.version}</p>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleAdd(item.name)}
+                                                    disabled={actionLoading === item.name}
+                                                    className="h-8 text-[10px] font-black text-primary bg-primary/10 hover:bg-primary/20 rounded-lg shrink-0 disabled:opacity-50"
+                                                >
+                                                    {actionLoading === item.name ? <Loader2 className="h-3 w-3 animate-spin" /> : "AGREGAR"}
+                                                </Button>
+                                            </div>
+                                            <div className="pl-11 space-y-1">
+                                                <p className="text-xs text-gray-400 leading-tight">{item.description}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[9px] font-black uppercase text-gray-600 tracking-widest">Alcance:</span>
+                                                    <span className="text-[9px] font-black uppercase text-primary/60">{item.scope}</span>
                                                 </div>
                                             </div>
-                                            <Button variant="ghost" size="sm" className="h-8 text-[10px] font-black text-primary bg-primary/10 hover:bg-primary/20 rounded-lg shrink-0">
-                                                AGREGAR
-                                            </Button>
                                         </div>
-                                        <div className="pl-11 space-y-1">
-                                            <p className="text-xs text-gray-400 leading-tight">{item.description}</p>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[9px] font-black uppercase text-gray-600 tracking-widest">Alcance:</span>
-                                                <span className="text-[9px] font-black uppercase text-primary/60">{item.scope}</span>
-                                            </div>
-                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="p-8 text-center opacity-30">
+                                        <Search className="h-8 w-8 mx-auto mb-2 text-gray-600" />
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">No se encontraron resultados</p>
                                     </div>
-                                ))}
+                                )}
                             </div>
                         </CustomCard>
                     </div>
-                ) : (
+                ) : isLogs ? (
                     <Card className="bg-black/40 backdrop-blur-xl border-gray-800 overflow-hidden flex flex-col shadow-2xl rounded-2xl">
                         <CardHeader className="py-4 px-6 border-b border-gray-800 bg-gray-900/30 flex flex-row items-center justify-between">
                             <CardTitle className="text-sm font-bold flex items-center gap-2">
-                                <Folder className="h-4 w-4 text-primary" />
-                                <span className="uppercase tracking-widest text-[10px] text-gray-500">Navegación /</span>
-                                <span className="text-white">{currentDir}</span>
+                                <FileText className="h-4 w-4 text-primary" />
+                                <span className="uppercase tracking-widest text-[10px] text-gray-500">Archivos de Registro</span>
                             </CardTitle>
                             <Button variant="ghost" size="sm" onClick={() => fetchFiles(currentDir)} className="h-8 text-[10px] font-bold gap-2">
                                 <RotateCw className="h-3 w-3" /> Actualizar
@@ -206,49 +332,40 @@ export function FileManager() {
                         </CardHeader>
                         <CardContent className="p-0">
                             {isLoading ? <LoadingState /> : files.length > 0 ? (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left border-collapse min-w-[500px]">
-                                        <thead>
-                                            <tr className="border-b border-gray-800/50 bg-gray-900/10">
-                                                <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-gray-500">Nombre</th>
-                                                <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-gray-500 text-right">Tamaño</th>
-                                                <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-gray-500 text-right">Fecha</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-800/50">
-                                            {files.map(file => (
-                                                <tr key={file.name} className="group hover:bg-white/[0.02] transition-colors">
-                                                    <td className="px-6 py-3 shrink-0">
-                                                        <div className="flex items-center gap-3">
-                                                            {file.isDirectory ? (
-                                                                <Folder className="h-4 w-4 text-blue-400" />
-                                                            ) : (
-                                                                <File className="h-4 w-4 text-gray-500" />
-                                                            )}
-                                                            <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors truncate">
-                                                                {file.name}
-                                                            </span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-3 text-right">
-                                                        <span className="text-[10px] font-mono text-gray-500">
-                                                            {file.isDirectory ? '--' : formatBytes(file.size)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-3 text-right">
-                                                        <span className="text-[10px] text-gray-600">
-                                                            {new Date(file.mtime).toLocaleDateString()}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                <div className="divide-y divide-gray-800/50">
+                                    {files.map(file => (
+                                        <div
+                                            key={file.name}
+                                            className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors group cursor-pointer"
+                                            onClick={() => handleViewLog(file.name)}
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500 shrink-0">
+                                                    <FileText className="h-4 w-4" />
+                                                </div>
+                                                <div className="truncate">
+                                                    <p className="text-sm font-bold text-gray-200 truncate">{file.name}</p>
+                                                    <div className="flex gap-3">
+                                                        <p className="text-[10px] text-gray-500 uppercase font-bold">{formatBytes(file.size)}</p>
+                                                        <p className="text-[10px] text-gray-600">{new Date(file.mtime).toLocaleDateString()}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="opacity-0 group-hover:opacity-100 h-8 text-[10px] font-black text-primary bg-primary/10 hover:bg-primary/20 rounded-lg gap-2"
+                                            >
+                                                <Eye className="h-3 w-3" />
+                                                VER
+                                            </Button>
+                                        </div>
+                                    ))}
                                 </div>
                             ) : <EmptyState />}
                         </CardContent>
                     </Card>
-                )}
+                ) : null}
             </div>
         </div>
     );
