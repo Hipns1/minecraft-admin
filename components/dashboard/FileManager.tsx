@@ -136,6 +136,9 @@ export function FileManager() {
                         if (f.isDirectory) {
                             // If there's a jar with same name, it's just the config folder
                             if (jarNames.has(f.name.toLowerCase())) return false;
+                        } else {
+                            // Only show .jar files in these folders for management
+                            if (!f.name.endsWith('.jar')) return false;
                         }
                         return true;
                     });
@@ -360,40 +363,55 @@ export function FileManager() {
                                 }
                             >
                                 <div className="divide-y divide-gray-800/50 max-h-[600px] overflow-y-auto">
-                                    {(currentDir === "plugins" ? RECOMMENDED_PLUGINS : RECOMMENDED_MODS).map(item => (
-                                        <div key={item.slug} className="flex flex-col p-4 hover:bg-white/[0.02] transition-colors group gap-3">
-                                            <div className="flex items-center justify-between min-w-0">
-                                                <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="w-10 h-10 rounded-lg bg-gray-900 border border-gray-800 overflow-hidden shrink-0 flex items-center justify-center">
-                                                        <img
-                                                            src={item.icon}
-                                                            alt={item.name}
-                                                            className="w-full h-full object-cover"
-                                                            onError={(e) => {
-                                                                (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=111&color=fff&bold=true`;
-                                                            }}
-                                                        />
+                                    {(currentDir === "plugins" ? RECOMMENDED_PLUGINS : RECOMMENDED_MODS).map(item => {
+                                        // Skip mods if it's a plugin loader
+                                        const isPluginLoader = ["paper", "spigot", "bukkit", "purpur"].includes(loader);
+                                        if (currentDir === "mods" && isPluginLoader) return null;
+
+                                        return (
+                                            <div key={item.slug} className="flex flex-col p-4 hover:bg-white/[0.02] transition-colors group gap-3">
+                                                <div className="flex items-center justify-between min-w-0">
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <div className="w-10 h-10 rounded-lg bg-gray-900 border border-gray-800 overflow-hidden shrink-0 flex items-center justify-center">
+                                                            <img
+                                                                src={item.icon}
+                                                                alt={item.name}
+                                                                className="w-full h-full object-cover"
+                                                                onError={(e) => {
+                                                                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=111&color=fff&bold=true`;
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <div className="truncate">
+                                                            <p className="text-sm font-bold text-gray-200 truncate">{item.name}</p>
+                                                            <p className="text-[10px] text-gray-500 uppercase font-black tracking-tighter">{item.author}</p>
+                                                        </div>
                                                     </div>
-                                                    <div className="truncate">
-                                                        <p className="text-sm font-bold text-gray-200 truncate">{item.name}</p>
-                                                        <p className="text-[10px] text-gray-500 uppercase font-black tracking-tighter">{item.author}</p>
-                                                    </div>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleAdd(item.slug, item.name)}
+                                                        disabled={actionLoading === item.slug}
+                                                        className="h-8 text-[10px] font-black text-primary bg-primary/10 hover:bg-primary/20 rounded-lg shrink-0 disabled:opacity-50"
+                                                    >
+                                                        {actionLoading === item.slug ? <Loader2 className="h-3 w-3 animate-spin" /> : "INSTALAR"}
+                                                    </Button>
                                                 </div>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => handleAdd(item.slug, item.name)}
-                                                    disabled={actionLoading === item.slug}
-                                                    className="h-8 text-[10px] font-black text-primary bg-primary/10 hover:bg-primary/20 rounded-lg shrink-0 disabled:opacity-50"
-                                                >
-                                                    {actionLoading === item.slug ? <Loader2 className="h-3 w-3 animate-spin" /> : "INSTALAR"}
-                                                </Button>
+                                                <div className="pl-[3.25rem]">
+                                                    <p className="text-xs text-gray-400 leading-tight line-clamp-2">{item.description}</p>
+                                                </div>
                                             </div>
-                                            <div className="pl-[3.25rem]">
-                                                <p className="text-xs text-gray-400 leading-tight line-clamp-2">{item.description}</p>
-                                            </div>
+                                        );
+                                    })}
+
+                                    {currentDir === "mods" && ["paper", "spigot", "bukkit", "purpur"].includes(loader) && (
+                                        <div className="p-8 text-center opacity-50 flex flex-col items-center gap-3">
+                                            <Package className="h-8 w-8 text-gray-600" />
+                                            <p className="text-xs font-bold text-gray-400">Tu servidor usa {loader.toUpperCase()}</p>
+                                            <p className="text-[10px] uppercase tracking-tighter max-w-[200px]">Los motores de plugins no soportan mods de Fabric/Forge.</p>
                                         </div>
-                                    ))}
+                                    )}
+
 
                                     <div className="p-6 text-center border-t border-gray-800/50">
                                         <Button

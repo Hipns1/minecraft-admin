@@ -207,23 +207,32 @@ export async function DELETE(request: Request) {
             : "/opt/minecraft";
 
         const targetPath = path.join(basePath, type, fileName);
+        console.log(`[DELETE] Request for file: ${fileName} in ${type}. Full path: ${targetPath}`);
 
         // Security: Ensure the path doesn't escape the intended directory
         const resolvedPath = path.resolve(targetPath);
         const resolvedBase = path.resolve(path.join(basePath, type));
         if (!resolvedPath.startsWith(resolvedBase)) {
-            return NextResponse.json({ error: "Invalid path" }, { status: 403 });
+            console.error(`[DELETE] Security block: ${resolvedPath} is outside ${resolvedBase}`);
+            return NextResponse.json({ error: "Acceso denegado: ruta inválida" }, { status: 403 });
         }
 
         // Check if file exists
         try {
             await fs.access(targetPath);
         } catch {
-            return NextResponse.json({ error: "File not found" }, { status: 404 });
+            console.error(`[DELETE] File not found: ${targetPath}`);
+            return NextResponse.json({ error: `El archivo ${fileName} no se encuentra en la carpeta ${type}` }, { status: 404 });
         }
 
         // Delete the file
-        await fs.unlink(targetPath);
+        try {
+            await fs.unlink(targetPath);
+            console.log(`[DELETE] Successfully unlinked: ${targetPath}`);
+        } catch (err: any) {
+            console.error(`[DELETE] Unlink failed: ${err.message}`);
+            return NextResponse.json({ error: `Error de permisos al intentar borrar ${fileName}: ${err.message}` }, { status: 500 });
+        }
 
         // Also try to delete associated folder if it exists
         const folderName = fileName.replace('.jar', '');
@@ -232,6 +241,7 @@ export async function DELETE(request: Request) {
             const stats = await fs.stat(folderPath);
             if (stats.isDirectory()) {
                 await fs.rm(folderPath, { recursive: true, force: true });
+                console.log(`[DELETE] Also removed folder: ${folderPath}`);
             }
         } catch {
             // Folder doesn't exist, ignore
@@ -242,8 +252,8 @@ export async function DELETE(request: Request) {
             message: `${fileName} eliminado correctamente`
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Failed to delete mod/plugin:", error);
-        return NextResponse.json({ error: "Could not delete mod/plugin" }, { status: 500 });
+        return NextResponse.json({ error: "Error interno al procesar la eliminación", details: error.message }, { status: 500 });
     }
 }

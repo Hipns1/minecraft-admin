@@ -155,6 +155,8 @@ export async function controlServer(action: "start" | "stop" | "restart") {
         throw new Error("Invalid action");
     }
 
+    console.log(`[CONTROL] Using method: ${CONTROL_METHOD}, Action: ${action}, Service: ${SERVICE_NAME}`);
+
     try {
         if (CONTROL_METHOD === "docker") {
             const command = action === "restart" ? `docker restart ${CONTAINER_NAME}` :
