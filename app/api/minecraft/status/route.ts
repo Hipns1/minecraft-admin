@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { getSystemStatus } from "@/lib/system";
+import { getSystemStatus, detectLoader } from "@/lib/system";
 import { getRconClient } from "@/lib/rcon";
 import { NextResponse } from "next/server";
 
@@ -52,9 +52,11 @@ export async function GET() {
             }
         }
 
+        const loader = await detectLoader();
         return NextResponse.json({
             ...sysStatus,
             version,
+            loader,
             players: {
                 online: playerCount,
                 max: maxPlayers,

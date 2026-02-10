@@ -27,7 +27,8 @@ interface SearchModsDialogProps {
 
 export function SearchModsDialog({ type, onClose, onInstallSuccess }: SearchModsDialogProps) {
     const [searchQuery, setSearchQuery] = useState("");
-    const [mcVersion, setMcVersion] = useState("1.19.2");
+    const [mcVersion, setMcVersion] = useState("");
+    const [isLoadingVersion, setIsLoadingVersion] = useState(true);
     const [loader, setLoader] = useState(type === "mods" ? "fabric" : "paper");
     const [results, setResults] = useState<ModrinthProject[]>([]);
     const [isSearching, setIsSearching] = useState(false);
@@ -41,6 +42,41 @@ export function SearchModsDialog({ type, onClose, onInstallSuccess }: SearchMods
             return () => clearTimeout(timer);
         }
     }, [notification]);
+
+    // Fetch current server status on mount for autodetection
+    useEffect(() => {
+        const fetchCurrentStatus = async () => {
+            try {
+                const res = await fetch('/api/minecraft/status');
+                const data = await res.json();
+
+                // Set version
+                if (data.version && data.version !== "Unknown") {
+                    setMcVersion(data.version);
+                } else {
+                    setMcVersion("1.19.2"); // Default fallback
+                }
+
+                // Autodetect loader
+                if (data.loader && data.loader !== "unknown") {
+                    const validLoaders = type === "mods"
+                        ? ["fabric", "forge", "quilt"]
+                        : ["paper", "spigot", "bukkit", "purpur"];
+
+                    if (validLoaders.includes(data.loader.toLowerCase())) {
+                        setLoader(data.loader.toLowerCase());
+                    }
+                }
+            } catch (e) {
+                console.error("Error fetching current status", e);
+                setMcVersion("1.19.2");
+            } finally {
+                setIsLoadingVersion(false);
+            }
+        };
+
+        fetchCurrentStatus();
+    }, [type]);
 
     const handleSearch = async () => {
         if (!searchQuery.trim()) return;
@@ -152,12 +188,20 @@ export function SearchModsDialog({ type, onClose, onInstallSuccess }: SearchMods
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">
                                 Versión de Minecraft
                             </label>
-                            <Input
-                                value={mcVersion}
-                                onChange={(e) => setMcVersion(e.target.value)}
-                                placeholder="1.19.2"
-                                className="bg-black/40 border-gray-700"
-                            />
+                            <div className="relative">
+                                <Input
+                                    value={mcVersion}
+                                    onChange={(e) => setMcVersion(e.target.value)}
+                                    placeholder="1.19.2"
+                                    className="bg-black/40 border-gray-700 pr-10"
+                                    disabled={isLoadingVersion}
+                                />
+                                {isLoadingVersion && (
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                        <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         <div>
                             <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">

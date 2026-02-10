@@ -13,7 +13,22 @@ import { SearchModsDialog } from "./SearchModsDialog";
 const SECTIONS = [
     { id: "plugins", label: "Plugins", icon: FolderTree },
     { id: "mods", label: "Mods", icon: Package },
-    { id: "logs", label: "Registros", icon: FileText },
+];
+
+const RECOMMENDED_PLUGINS = [
+    { slug: "essentialsx", name: "EssentialsX", author: "TeamCity", description: "Utilidades esenciales: teletransporte, economía, kits y más.", icon: "https://cdn.modrinth.com/data/S9u9iM4r/icon.png" },
+    { slug: "luckperms", name: "LuckPerms", author: "Luck", description: "El mejor sistema de permisos para rangos y seguridad.", icon: "https://cdn.modrinth.com/data/V9v62p4t/icon.png" },
+    { slug: "worldedit", name: "WorldEdit", author: "enginehub", description: "Editor de mapas masivo profesional.", icon: "https://cdn.modrinth.com/data/896689/icon.png" },
+    { slug: "placeholderapi", name: "PlaceholderAPI", author: "ExtendedClip", description: "API vital para mostrar información dinámica.", icon: "https://cdn.modrinth.com/data/12345/icon.png" },
+    { slug: "viaversion", name: "ViaVersion", author: "ViaVersion", description: "Permite la conexión de versiones de Minecraft nuevas.", icon: "https://cdn.modrinth.com/data/12345/icon.png" }
+];
+
+const RECOMMENDED_MODS = [
+    { slug: "sodium", name: "Sodium", author: "jellysquid3", description: "Optimización masiva del rendimiento y FPS.", icon: "https://cdn.modrinth.com/data/AANobbMI/icon.png" },
+    { slug: "iris", name: "Iris Shaders", author: "coderbot", description: "Soporte para Shaders con máximo rendimiento.", icon: "https://cdn.modrinth.com/data/YL577FC6/icon.png" },
+    { slug: "journeymap", name: "JourneyMap", author: "teamjm", description: "Mapa en tiempo real y minimapa detallado.", icon: "https://cdn.modrinth.com/data/m6897/icon.png" },
+    { slug: "jei", name: "Just Enough Items", author: "mezz", description: "Buscador de recetas y bloques integrado.", icon: "https://cdn.modrinth.com/data/u6ms9Ejq/icon.png" },
+    { slug: "voicechat", name: "Simple Voice Chat", author: "henkelmax", description: "Chat de voz por proximidad de alta fidelidad.", icon: "https://cdn.modrinth.com/data/896689/icon.png" }
 ];
 
 function formatBytes(bytes: number, decimals = 2) {
@@ -34,6 +49,9 @@ export function FileManager() {
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
     const [showSearchDialog, setShowSearchDialog] = useState(false);
+    const [mcVersion, setMcVersion] = useState("1.19.2");
+    const [loader, setLoader] = useState("fabric");
+    const [isDetecting, setIsDetecting] = useState(true);
 
     // Auto-hide notification after 5 seconds
     useEffect(() => {
@@ -84,6 +102,27 @@ export function FileManager() {
         fetchFiles(currentDir);
     }, [currentDir]);
 
+    // Autodetect on mount
+    useEffect(() => {
+        const detect = async () => {
+            try {
+                const res = await fetch('/api/minecraft/status');
+                const data = await res.json();
+                if (data.version && data.version !== "Unknown") setMcVersion(data.version);
+                if (data.loader && data.loader !== "unknown") {
+                    setLoader(data.loader.toLowerCase());
+                } else {
+                    setLoader(currentDir === "mods" ? "fabric" : "paper");
+                }
+            } catch (e) {
+                console.error("Error detecting server status", e);
+            } finally {
+                setIsDetecting(false);
+            }
+        };
+        detect();
+    }, [currentDir]);
+
     const handleRemove = async (fileName: string) => {
         if (!confirm(`¿Estás seguro de que deseas eliminar ${fileName}?`)) return;
 
@@ -110,19 +149,24 @@ export function FileManager() {
         }
     };
 
-    const handleAdd = async (pluginName: string) => {
-        setActionLoading(pluginName);
+    const handleAdd = async (projectSlug: string, projectName: string) => {
+        setActionLoading(projectSlug);
         try {
             const res = await fetch('/api/minecraft/manage-plugin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pluginName, type: currentDir })
+                body: JSON.stringify({
+                    projectSlug,
+                    type: currentDir,
+                    mcVersion,
+                    loader
+                })
             });
 
             const data = await res.json();
 
             if (res.ok) {
-                setNotification({ type: 'success', message: data.message || `${pluginName} instalado correctamente` });
+                setNotification({ type: 'success', message: data.message || `${projectName} instalado correctamente` });
                 await fetchFiles(currentDir);
             } else {
                 setNotification({ type: 'error', message: data.error || 'Error al agregar el plugin/mod' });
@@ -140,7 +184,6 @@ export function FileManager() {
     };
 
     const isPluginsOrMods = currentDir === "plugins" || currentDir === "mods";
-    const isLogs = currentDir === "logs";
 
     return (
         <div className="flex flex-col gap-6">
@@ -240,77 +283,64 @@ export function FileManager() {
                                 </div>
                             </CustomCard>
 
-                            {/* Available Section */}
-                            <CustomCard title={`Buscar en Modrinth`} icon={<Search className="h-4 w-4" />}>
-                                <div className="p-8 flex flex-col items-center justify-center text-center gap-6">
-                                    <div className="p-4 rounded-full bg-primary/10 text-primary">
-                                        <Package className="h-10 w-10" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <h3 className="text-lg font-black text-white">¿Buscas algo nuevo?</h3>
-                                        <p className="text-sm text-gray-500 max-w-[280px] mx-auto">
-                                            Explora miles de {currentDir === "plugins" ? "plugins" : "mods"} directamente desde la API oficial de Modrinth.
-                                        </p>
-                                    </div>
+                            {/* Available Section (Recommendations) */}
+                            <CustomCard
+                                title="Recomendados (Modrinth)"
+                                icon={<Plus className="h-4 w-4" />}
+                                action={
                                     <Button
+                                        variant="ghost"
+                                        size="sm"
                                         onClick={() => setShowSearchDialog(true)}
-                                        className="w-full max-w-[200px] bg-primary hover:bg-primary/90 text-black font-black h-12 rounded-xl shadow-lg shadow-primary/20"
+                                        className="h-8 text-[10px] font-black text-primary hover:bg-primary/10 rounded-lg gap-2"
                                     >
-                                        <Search className="mr-2 h-5 w-5" />
-                                        BUSCAR {currentDir.toUpperCase()}
+                                        <Search className="h-3 w-3" />
+                                        BUSCAR MÁS
                                     </Button>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">
-                                        Resultados en tiempo real • API Oficial
-                                    </p>
-                                </div>
-                            </CustomCard>
-                        </div>
-                    ) : isLogs ? (
-                        <Card className="bg-black/40 backdrop-blur-xl border-gray-800 overflow-hidden flex flex-col shadow-2xl rounded-2xl">
-                            <CardHeader className="py-4 px-6 border-b border-gray-800 bg-gray-900/30 flex flex-row items-center justify-between">
-                                <CardTitle className="text-sm font-bold flex items-center gap-2">
-                                    <FileText className="h-4 w-4 text-primary" />
-                                    <span className="uppercase tracking-widest text-[10px] text-gray-500">Archivos de Registro</span>
-                                </CardTitle>
-                                <Button variant="ghost" size="sm" onClick={() => fetchFiles(currentDir)} className="h-8 text-[10px] font-bold gap-2">
-                                    <RotateCw className="h-3 w-3" /> Actualizar
-                                </Button>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                {isLoading ? <LoadingState /> : files.length > 0 ? (
-                                    <div className="divide-y divide-gray-800/50">
-                                        {files.map(file => (
-                                            <div
-                                                key={file.name}
-                                                className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors group cursor-pointer"
-                                                onClick={() => handleViewLog(file.name)}
-                                            >
+                                }
+                            >
+                                <div className="divide-y divide-gray-800/50 max-h-[600px] overflow-y-auto">
+                                    {(currentDir === "plugins" ? RECOMMENDED_PLUGINS : RECOMMENDED_MODS).map(item => (
+                                        <div key={item.slug} className="flex flex-col p-4 hover:bg-white/[0.02] transition-colors group gap-3">
+                                            <div className="flex items-center justify-between min-w-0">
                                                 <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500 shrink-0">
-                                                        <FileText className="h-4 w-4" />
+                                                    <div className="w-10 h-10 rounded-lg bg-gray-900 border border-gray-800 overflow-hidden shrink-0">
+                                                        <img src={item.icon} alt={item.name} className="w-full h-full object-cover" />
                                                     </div>
                                                     <div className="truncate">
-                                                        <p className="text-sm font-bold text-gray-200 truncate">{file.name}</p>
-                                                        <div className="flex gap-3">
-                                                            <p className="text-[10px] text-gray-500 uppercase font-bold">{formatBytes(file.size)}</p>
-                                                            <p className="text-[10px] text-gray-600">{new Date(file.mtime).toLocaleDateString()}</p>
-                                                        </div>
+                                                        <p className="text-sm font-bold text-gray-200 truncate">{item.name}</p>
+                                                        <p className="text-[10px] text-gray-500 uppercase font-black tracking-tighter">{item.author}</p>
                                                     </div>
                                                 </div>
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="opacity-0 group-hover:opacity-100 h-8 text-[10px] font-black text-primary bg-primary/10 hover:bg-primary/20 rounded-lg gap-2"
+                                                    onClick={() => handleAdd(item.slug, item.name)}
+                                                    disabled={actionLoading === item.slug}
+                                                    className="h-8 text-[10px] font-black text-primary bg-primary/10 hover:bg-primary/20 rounded-lg shrink-0 disabled:opacity-50"
                                                 >
-                                                    <Eye className="h-3 w-3" />
-                                                    VER
+                                                    {actionLoading === item.slug ? <Loader2 className="h-3 w-3 animate-spin" /> : "INSTALAR"}
                                                 </Button>
                                             </div>
-                                        ))}
+                                            <div className="pl-[3.25rem]">
+                                                <p className="text-xs text-gray-400 leading-tight line-clamp-2">{item.description}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    <div className="p-6 text-center border-t border-gray-800/50">
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => setShowSearchDialog(true)}
+                                            className="w-full bg-gray-950/40 border-gray-800 hover:border-primary/50 text-[10px] font-black uppercase tracking-widest h-10"
+                                        >
+                                            <Search className="h-3 w-3 mr-2" />
+                                            Explorar todo en Modrinth
+                                        </Button>
                                     </div>
-                                ) : <EmptyState />}
-                            </CardContent>
-                        </Card>
+                                </div>
+                            </CustomCard>
+                        </div>
                     ) : null}
                 </div>
             </div>
@@ -328,14 +358,15 @@ export function FileManager() {
     );
 }
 
-function CustomCard({ title, icon, children }: { title: string, icon: any, children: React.ReactNode }) {
+function CustomCard({ title, icon, action, children }: { title: string, icon: any, action?: React.ReactNode, children: React.ReactNode }) {
     return (
         <Card className="bg-black/40 backdrop-blur-xl border-gray-800 overflow-hidden flex flex-col shadow-2xl rounded-2xl">
-            <CardHeader className="py-4 px-6 border-b border-gray-800 bg-gray-900/10">
+            <CardHeader className="py-4 px-6 border-b border-gray-800 bg-gray-900/10 flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2">
                     {icon}
                     {title}
                 </CardTitle>
+                {action}
             </CardHeader>
             <CardContent className="p-0">
                 {children}

@@ -102,6 +102,36 @@ export async function getSystemStatus(): Promise<{
     }
 }
 
+export async function detectLoader(): Promise<string> {
+    const rootDir = path.dirname(path.dirname(LOG_FILE_PATH));
+    try {
+        const files = await fs.readdir(rootDir);
+
+        // Priority check for specific indicators
+        if (files.includes('.fabric') || files.some(f => f.includes('fabric-server'))) return 'fabric';
+        if (files.includes('paper.yml') || files.some(f => f.includes('paper-global') || f.includes('paper-world'))) return 'paper';
+        if (files.includes('spigot.yml')) return 'spigot';
+        if (files.includes('bukkit.yml')) return 'bukkit';
+        if (files.some(f => f.toLowerCase().includes('forge'))) return 'forge';
+        if (files.includes('.quilt')) return 'quilt';
+        if (files.some(f => f.toLowerCase().includes('purpur'))) return 'purpur';
+
+        // Fallback: search in jar files
+        const jarFiles = files.filter(f => f.endsWith('.jar'));
+        for (const jar of jarFiles) {
+            const lowerJar = jar.toLowerCase();
+            if (lowerJar.includes('fabric')) return 'fabric';
+            if (lowerJar.includes('paper')) return 'paper';
+            if (lowerJar.includes('spigot')) return 'spigot';
+            if (lowerJar.includes('forge')) return 'forge';
+            if (lowerJar.includes('purpur')) return 'purpur';
+        }
+    } catch (e) {
+        // Silent fail, return unknown
+    }
+    return "unknown";
+}
+
 const CONTROL_METHOD = process.env.MC_CONTROL_METHOD || "systemd";
 const CONTAINER_NAME = process.env.MC_CONTAINER_NAME || "minecraft_server";
 
