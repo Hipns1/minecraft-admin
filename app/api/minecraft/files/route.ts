@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     const subDir = searchParams.get("dir") || "";
 
     // We only allow specific directories for security
-    const allowedDirs = ["mods", "plugins", "config", "world", "logs", ""];
+    const allowedDirs = ["mods", "plugins", "config", "backups", "logs", ""];
     if (!allowedDirs.includes(subDir)) {
         return NextResponse.json({ error: "Access denied" }, { status: 403 });
     }

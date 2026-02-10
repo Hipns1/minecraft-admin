@@ -1,6 +1,7 @@
 import { exec } from "child_process";
 import { promisify } from "util";
 import fs from "fs/promises";
+import path from "path";
 
 const execAsync = promisify(exec);
 
@@ -130,17 +131,15 @@ export async function controlServer(action: "start" | "stop" | "restart") {
     }
 }
 
-export async function getLatestLogs(lines: number = 50): Promise<string[]> {
+export async function getLatestLogs(lines: number = 50, fileName: string = "latest.log"): Promise<string[]> {
+    const customLogPath = path.join(path.dirname(LOG_FILE_PATH), fileName);
     try {
-        // Read the last N lines of the file
-        // Using 'tail' command is efficient for large files
-        const { stdout } = await execAsync(`tail -n ${lines} ${LOG_FILE_PATH}`);
+        const { stdout } = await execAsync(`tail -n ${lines} ${customLogPath}`);
         return stdout.split("\n");
     } catch (error) {
         console.error("Failed to read logs:", error);
-        // Fallback: try reading file directly if tail fails (e.g. windows dev env)
         try {
-            const content = await fs.readFile(LOG_FILE_PATH, 'utf-8');
+            const content = await fs.readFile(customLogPath, 'utf-8');
             return content.split('\n').slice(-lines);
         } catch (fsError) {
             return ["Error reading logs or log file not found."];

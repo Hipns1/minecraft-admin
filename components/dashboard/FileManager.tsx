@@ -5,28 +5,35 @@
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Folder, File, Loader2, FolderTree, Package, Box, Globe, Settings, FileText, RotateCw, Plus } from "lucide-react";
+import { Folder, File, Loader2, FolderTree, Package, Box, Globe, Settings, FileText, RotateCw, Plus, Archive } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const SECTIONS = [
     { id: "plugins", label: "Plugins", icon: FolderTree },
     { id: "mods", label: "Mods", icon: Package },
-    { id: "world", label: "Mundo", icon: Globe },
+    { id: "backups", label: "Backups", icon: Archive },
     { id: "config", label: "Configuración", icon: Settings },
     { id: "logs", label: "Registros", icon: FileText },
 ];
 
 const AVAILABLE_PLUGINS = [
-    { name: "EssentialsX", version: "2.19.0", description: "Utilidades esenciales", type: "plugins" },
-    { name: "WorldEdit", version: "7.2.10", description: "Editor de mapas", type: "plugins" },
-    { name: "LuckPerms", version: "5.4.0", description: "Gestión de permisos", type: "plugins" },
-    { name: "Vault", version: "1.7.3", description: "API de economía", type: "plugins" },
+    { name: "EssentialsX", version: "2.19.0", description: "Utilidades de administración, economía y comandos básicos.", scope: "Global / Admin", type: "plugins" },
+    { name: "WorldEdit", version: "7.2.10", description: "Editor de mapas masivo mediante comandos y herramientas.", scope: "Construcción", type: "plugins" },
+    { name: "LuckPerms", version: "5.4.0", description: "Sistema avanzado de permisos para grupos y jugadores.", scope: "Seguridad / Rangos", type: "plugins" },
+    { name: "Vault", version: "1.7.3", description: "API puente para conectar plugins de economía y chat.", scope: "Sistema", type: "plugins" },
+    { name: "SkinRestorer", version: "14.2.3", description: "Permite restaurar y cambiar skins en servidores offline/no-premium.", scope: "Visual / Usuarios", type: "plugins" },
+    { name: "ClearLag", version: "3.2.2", description: "Optimización remota de entidades y reducción de lag del servidor.", scope: "Rendimiento", type: "plugins" },
+    { name: "Multiverse-Core", version: "4.3.1", description: "Gestión de múltiples mundos simultáneos en el servidor.", scope: "Mundos", type: "plugins" },
+    { name: "ViaVersion", version: "4.4.2", description: "Permite que versiones más nuevas de Minecraft entren al servidor.", scope: "Compatibilidad", type: "plugins" },
 ];
 
 const AVAILABLE_MODS = [
-    { name: "JourneyMap", version: "1.19.2", description: "Mapa en tiempo real", type: "mods" },
-    { name: "JEI", version: "10.0.0", description: "Lista de items e ítems", type: "mods" },
-    { name: "Mouse Tweaks", version: "2.22", description: "Mejoras de inventario", type: "mods" },
+    { name: "JourneyMap", version: "1.19.2", description: "Mapa detallado en tiempo real con minimapa e interfaz completa.", scope: "Interfaz / Jugador", type: "mods" },
+    { name: "JEI (Just Enough Items)", version: "10.0.0", description: "Visualizador de recetas y buscador de todos los bloques del juego.", scope: "Interfaz / Guía", type: "mods" },
+    { name: "Mouse Tweaks", version: "2.22", description: "Mejoras drásticas de usabilidad para el inventario y cofres.", scope: "Jugabilidad", type: "mods" },
+    { name: "AppleSkin", version: "2.4.0", description: "Muestra información de saturación y nutrición en la barra de comida.", scope: "Visual / HUD", type: "mods" },
+    { name: "Clumps", version: "9.0.0", description: "Agrupa los orbes de experiencia en uno solo para reducir lag.", scope: "Rendimiento", type: "mods" },
+    { name: "Simple Voice Chat", version: "2.3.2", description: "Chat de voz por proximidad integrado directamente en el juego.", scope: "Social / Audio", type: "mods" },
 ];
 
 function formatBytes(bytes: number, decimals = 2) {
@@ -49,7 +56,21 @@ export function FileManager() {
             const res = await fetch(`/api/minecraft/files?dir=${dir}`);
             const data = await res.json();
             if (data.files) {
-                const sorted = data.files.sort((a: any, b: any) => {
+                let processed = data.files;
+
+                // Unified view for plugins/mods: Hide folders if a corresponding .jar exists
+                if (dir === "plugins" || dir === "mods") {
+                    const jarNames = new Set(processed.filter((f: any) => f.name.endsWith('.jar')).map((f: any) => f.name.replace('.jar', '').toLowerCase()));
+                    processed = processed.filter((f: any) => {
+                        if (f.isDirectory) {
+                            // If there's a jar with same name, it's just the config folder
+                            if (jarNames.has(f.name.toLowerCase())) return false;
+                        }
+                        return true;
+                    });
+                }
+
+                const sorted = processed.sort((a: any, b: any) => {
                     if (a.isDirectory && !b.isDirectory) return -1;
                     if (!a.isDirectory && b.isDirectory) return 1;
                     return a.name.localeCompare(b.name);
@@ -125,11 +146,14 @@ export function FileManager() {
                                                 </div>
                                                 <div className="truncate">
                                                     <p className="text-sm font-bold text-gray-200 truncate">{file.name}</p>
-                                                    <p className="text-[10px] text-gray-500 uppercase font-bold">{formatBytes(file.size)}</p>
+                                                    <div className="flex gap-2">
+                                                        <p className="text-[10px] text-gray-500 uppercase font-bold">{formatBytes(file.size)}</p>
+                                                        <p className="text-[10px] text-primary/60 uppercase font-black tracking-tighter shrink-0">INSTALADO</p>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 h-8 text-[10px] font-black text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg">
-                                                ELIMINAR
+                                                QUITAR
                                             </Button>
                                         </div>
                                     ))
@@ -138,22 +162,31 @@ export function FileManager() {
                         </CustomCard>
 
                         {/* Available Section */}
-                        <CustomCard title="Disponibles para agregar" icon={<Plus className="h-4 w-4" />}>
+                        <CustomCard title="Catálogo Disponible" icon={<Plus className="h-4 w-4" />}>
                             <div className="divide-y divide-gray-800/50">
                                 {availableItems.map(item => (
-                                    <div key={item.name} className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors group">
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
-                                                <Plus className="h-4 w-4" />
+                                    <div key={item.name} className="flex flex-col p-4 hover:bg-white/[0.02] transition-colors group gap-3">
+                                        <div className="flex items-center justify-between min-w-0">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                                                    <Plus className="h-4 w-4" />
+                                                </div>
+                                                <div className="truncate">
+                                                    <p className="text-sm font-bold text-gray-200 truncate">{item.name}</p>
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold">{item.version}</p>
+                                                </div>
                                             </div>
-                                            <div className="truncate">
-                                                <p className="text-sm font-bold text-gray-200 truncate">{item.name}</p>
-                                                <p className="text-[10px] text-gray-500 uppercase font-bold">{item.version}</p>
+                                            <Button variant="ghost" size="sm" className="h-8 text-[10px] font-black text-primary bg-primary/10 hover:bg-primary/20 rounded-lg shrink-0">
+                                                AGREGAR
+                                            </Button>
+                                        </div>
+                                        <div className="pl-11 space-y-1">
+                                            <p className="text-xs text-gray-400 leading-tight">{item.description}</p>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[9px] font-black uppercase text-gray-600 tracking-widest">Alcance:</span>
+                                                <span className="text-[9px] font-black uppercase text-primary/60">{item.scope}</span>
                                             </div>
                                         </div>
-                                        <Button variant="ghost" size="sm" className="h-8 text-[10px] font-black text-primary bg-primary/10 hover:bg-primary/20 rounded-lg">
-                                            INSTALAR
-                                        </Button>
                                     </div>
                                 ))}
                             </div>

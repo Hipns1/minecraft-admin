@@ -17,11 +17,14 @@ interface LogLine {
 
 export default function ConsoleInterface({
     readOnly = false,
-    mode = "console"
+    mode = "console",
+    initialFile = "latest.log"
 }: {
     readOnly?: boolean,
-    mode?: "console" | "logs"
+    mode?: "console" | "logs",
+    initialFile?: string
 }) {
+    const [currentFile, setCurrentFile] = useState(initialFile);
     const [input, setInput] = useState("");
     const [logs, setLogs] = useState<LogLine[]>([]);
     const [serverLogLines, setServerLogLines] = useState<string[]>([]);
@@ -49,7 +52,7 @@ export default function ConsoleInterface({
     const fetchLogs = async () => {
         if (mode !== "logs") return;
         try {
-            const res = await fetch("/api/minecraft/logs");
+            const res = await fetch(`/api/minecraft/logs?file=${encodeURIComponent(currentFile)}`);
             const data = await res.json();
             if (data.logs && Array.isArray(data.logs)) {
                 setServerLogLines(data.logs);
@@ -62,10 +65,17 @@ export default function ConsoleInterface({
     useEffect(() => {
         if (mode === "logs") {
             fetchLogs();
-            const interval = setInterval(fetchLogs, 3000);
+            const interval = setInterval(fetchLogs, 5000);
             return () => clearInterval(interval);
         }
-    }, [mode]);
+    }, [mode, currentFile]);
+
+    // Update current file if prop changes
+    useEffect(() => {
+        if (initialFile !== currentFile) {
+            setCurrentFile(initialFile);
+        }
+    }, [initialFile]);
 
     useEffect(() => {
         scrollToBottom();
@@ -110,7 +120,7 @@ export default function ConsoleInterface({
                     <div className="flex items-center gap-2">
                         <TerminalIcon className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
                         <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-gray-500">
-                            {mode === "console" ? "Terminal de Comandos" : "Visor de Registros (latest.log)"}
+                            {mode === "console" ? "Terminal de Comandos" : `Visor: ${currentFile}`}
                         </span>
                     </div>
                     <div className="flex gap-1 md:gap-2">
