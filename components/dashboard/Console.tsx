@@ -18,11 +18,13 @@ interface LogLine {
 export default function ConsoleInterface({
     readOnly = false,
     mode = "console",
-    initialFile = "latest.log"
+    initialFile = "latest.log",
+    refreshInterval = 5000
 }: {
     readOnly?: boolean,
     mode?: "console" | "logs",
-    initialFile?: string
+    initialFile?: string,
+    refreshInterval?: number
 }) {
     const [currentFile, setCurrentFile] = useState(initialFile);
     const [input, setInput] = useState("");
@@ -65,10 +67,10 @@ export default function ConsoleInterface({
     useEffect(() => {
         if (mode === "logs") {
             fetchLogs();
-            const interval = setInterval(fetchLogs, 5000);
+            const interval = setInterval(fetchLogs, refreshInterval);
             return () => clearInterval(interval);
         }
-    }, [mode, currentFile]);
+    }, [mode, currentFile, refreshInterval]);
 
     // Update current file if prop changes
     useEffect(() => {

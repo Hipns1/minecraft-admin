@@ -133,14 +133,39 @@ export async function controlServer(action: "start" | "stop" | "restart") {
 
 export async function getLatestLogs(lines: number = 50, fileName: string = "latest.log"): Promise<string[]> {
     const customLogPath = path.join(path.dirname(LOG_FILE_PATH), fileName);
+    const isGzipped = fileName.endsWith('.gz');
+
     try {
-        const { stdout } = await execAsync(`tail -n ${lines} ${customLogPath}`);
-        return stdout.split("\n");
+        if (isGzipped) {
+            // For gzipped files, use zcat or gunzip to read
+            try {
+                const { stdout } = await execAsync(`zcat ${customLogPath} 2>/dev/null || gunzip -c ${customLogPath}`);
+                return stdout.split("\n").slice(-lines);
+            } catch (execError) {
+                // Fallback to Node.js zlib if system commands fail
+                const zlib = await import('zlib');
+                const content = await fs.readFile(customLogPath);
+                const decompressed = zlib.gunzipSync(content);
+                return decompressed.toString('utf-8').split('\n').slice(-lines);
+            }
+        } else {
+            // For regular files, use tail
+            const { stdout } = await execAsync(`tail -n ${lines} ${customLogPath}`);
+            return stdout.split("\n");
+        }
     } catch (error) {
         console.error("Failed to read logs:", error);
         try {
-            const content = await fs.readFile(customLogPath, 'utf-8');
-            return content.split('\n').slice(-lines);
+            if (isGzipped) {
+                // Try to decompress with zlib
+                const zlib = await import('zlib');
+                const content = await fs.readFile(customLogPath);
+                const decompressed = zlib.gunzipSync(content);
+                return decompressed.toString('utf-8').split('\n').slice(-lines);
+            } else {
+                const content = await fs.readFile(customLogPath, 'utf-8');
+                return content.split('\n').slice(-lines);
+            }
         } catch (fsError) {
             return ["Error reading logs or log file not found."];
         }

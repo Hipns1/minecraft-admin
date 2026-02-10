@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Folder, File, Loader2, FolderTree, Package, FileText, RotateCw, Plus, Search, X, Eye } from "lucide-react";
+import { Folder, File, Loader2, FolderTree, Package, FileText, RotateCw, Plus, Search, X, Eye, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
@@ -77,6 +77,15 @@ export function FileManager() {
     const [isLoading, setIsLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+
+    // Auto-hide notification after 5 seconds
+    useEffect(() => {
+        if (notification) {
+            const timer = setTimeout(() => setNotification(null), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [notification]);
 
     const fetchFiles = async (dir: string) => {
         setIsLoading(true);
@@ -130,13 +139,16 @@ export function FileManager() {
                 body: JSON.stringify({ fileName, type: currentDir })
             });
 
+            const data = await res.json();
+
             if (res.ok) {
+                setNotification({ type: 'success', message: `${fileName} eliminado correctamente` });
                 await fetchFiles(currentDir);
             } else {
-                alert('Error al eliminar el archivo');
+                setNotification({ type: 'error', message: data.error || 'Error al eliminar el archivo' });
             }
         } catch (e) {
-            alert('Error al eliminar el archivo');
+            setNotification({ type: 'error', message: 'Error de conexión al eliminar el archivo' });
         } finally {
             setActionLoading(null);
         }
@@ -151,14 +163,16 @@ export function FileManager() {
                 body: JSON.stringify({ pluginName, type: currentDir })
             });
 
+            const data = await res.json();
+
             if (res.ok) {
+                setNotification({ type: 'success', message: data.message || `${pluginName} instalado correctamente` });
                 await fetchFiles(currentDir);
             } else {
-                const data = await res.json();
-                alert(data.error || 'Error al agregar el plugin/mod');
+                setNotification({ type: 'error', message: data.error || 'Error al agregar el plugin/mod' });
             }
         } catch (e) {
-            alert('Error al agregar el plugin/mod');
+            setNotification({ type: 'error', message: 'Error de conexión al agregar el plugin/mod' });
         } finally {
             setActionLoading(null);
         }
@@ -181,191 +195,216 @@ export function FileManager() {
     );
 
     return (
-        <div className="flex flex-col lg:grid gap-6 lg:grid-cols-4">
-            {/* Sidebar / Tabs */}
-            <div className="lg:col-span-1">
-                <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto pb-4 lg:pb-0 no-scrollbar">
-                    {SECTIONS.map(section => (
-                        <button
-                            key={section.id}
-                            onClick={() => setCurrentDir(section.id)}
-                            className={cn(
-                                "flex-none lg:w-full min-w-[120px] text-left p-3 lg:p-4 rounded-2xl border transition-all duration-300 group",
-                                currentDir === section.id
-                                    ? "bg-primary/10 border-primary/40 ring-1 ring-primary/20"
-                                    : "bg-gray-950/40 border-gray-800/50 hover:border-gray-700 hover:bg-gray-900/40"
-                            )}
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className={cn(
-                                    "p-2 rounded-xl transition-colors shrink-0",
-                                    currentDir === section.id ? "bg-primary text-black" : "bg-gray-900 group-hover:bg-gray-800 text-gray-500"
-                                )}>
-                                    <section.icon className="h-4 w-4" />
-                                </div>
-                                <span className={cn(
-                                    "text-sm font-bold tracking-tight",
-                                    currentDir === section.id ? "text-white" : "text-gray-400"
-                                )}>
-                                    {section.label}
-                                </span>
-                            </div>
-                        </button>
-                    ))}
+        <div className="flex flex-col gap-6">
+            {/* Notification Toast */}
+            {notification && (
+                <div className={cn(
+                    "fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl backdrop-blur-xl border animate-in slide-in-from-top-5 duration-300",
+                    notification.type === 'success'
+                        ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400"
+                        : "bg-red-500/10 border-red-500/50 text-red-400"
+                )}>
+                    {notification.type === 'success' ? (
+                        <CheckCircle2 className="h-5 w-5 shrink-0" />
+                    ) : (
+                        <XCircle className="h-5 w-5 shrink-0" />
+                    )}
+                    <span className="text-sm font-bold">{notification.message}</span>
+                    <button
+                        onClick={() => setNotification(null)}
+                        className="ml-2 hover:opacity-70 transition-opacity"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
                 </div>
-            </div>
+            )}
 
-            {/* Main Content */}
-            <div className="lg:col-span-3 space-y-6">
-                {isPluginsOrMods ? (
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                        {/* Installed Section */}
-                        <CustomCard title={`Instalados (${files.length})`} icon={<Package className="h-4 w-4" />}>
-                            <div className="divide-y divide-gray-800/50 max-h-[600px] overflow-y-auto">
-                                {isLoading ? (
-                                    <LoadingState />
-                                ) : files.length > 0 ? (
-                                    files.map(file => (
-                                        <div key={file.name} className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors group">
-                                            <div className="flex items-center gap-3 min-w-0">
-                                                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 shrink-0">
-                                                    <Package className="h-4 w-4" />
-                                                </div>
-                                                <div className="truncate">
-                                                    <p className="text-sm font-bold text-gray-200 truncate">{file.name}</p>
-                                                    <div className="flex gap-2">
-                                                        <p className="text-[10px] text-gray-500 uppercase font-bold">{formatBytes(file.size)}</p>
-                                                        <p className="text-[10px] text-primary/60 uppercase font-black tracking-tighter shrink-0">INSTALADO</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleRemove(file.name)}
-                                                disabled={actionLoading === file.name}
-                                                className="opacity-0 group-hover:opacity-100 h-8 text-[10px] font-black text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg disabled:opacity-50"
-                                            >
-                                                {actionLoading === file.name ? <Loader2 className="h-3 w-3 animate-spin" /> : "QUITAR"}
-                                            </Button>
-                                        </div>
-                                    ))
-                                ) : <EmptyState />}
-                            </div>
-                        </CustomCard>
-
-                        {/* Available Section */}
-                        <CustomCard title="Catálogo Disponible" icon={<Plus className="h-4 w-4" />}>
-                            {/* Search Bar */}
-                            <div className="p-4 border-b border-gray-800/50 bg-gray-900/20">
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                                    <Input
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        placeholder="Buscar plugins/mods..."
-                                        className="pl-10 pr-10 bg-black/40 border-gray-700 focus:border-primary h-9 text-sm"
-                                    />
-                                    {searchQuery && (
-                                        <button
-                                            onClick={() => setSearchQuery("")}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </button>
-                                    )}
+            <div className="flex flex-col lg:grid gap-6 lg:grid-cols-4">
+                {/* Sidebar / Tabs */}
+                <div className="lg:col-span-1">
+                    <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto pb-4 lg:pb-0 no-scrollbar">
+                        {SECTIONS.map(section => (
+                            <button
+                                key={section.id}
+                                onClick={() => setCurrentDir(section.id)}
+                                className={cn(
+                                    "flex-none lg:w-full min-w-[120px] text-left p-3 lg:p-4 rounded-2xl border transition-all duration-300 group",
+                                    currentDir === section.id
+                                        ? "bg-primary/10 border-primary/40 ring-1 ring-primary/20"
+                                        : "bg-gray-950/40 border-gray-800/50 hover:border-gray-700 hover:bg-gray-900/40"
+                                )}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={cn(
+                                        "p-2 rounded-xl transition-colors shrink-0",
+                                        currentDir === section.id ? "bg-primary text-black" : "bg-gray-900 group-hover:bg-gray-800 text-gray-500"
+                                    )}>
+                                        <section.icon className="h-4 w-4" />
+                                    </div>
+                                    <span className={cn(
+                                        "text-sm font-bold tracking-tight",
+                                        currentDir === section.id ? "text-white" : "text-gray-400"
+                                    )}>
+                                        {section.label}
+                                    </span>
                                 </div>
-                            </div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
 
-                            <div className="divide-y divide-gray-800/50 max-h-[550px] overflow-y-auto">
-                                {filteredAvailableItems.length > 0 ? (
-                                    filteredAvailableItems.map(item => (
-                                        <div key={item.name} className="flex flex-col p-4 hover:bg-white/[0.02] transition-colors group gap-3">
-                                            <div className="flex items-center justify-between min-w-0">
+                {/* Main Content */}
+                <div className="lg:col-span-3 space-y-6">
+                    {isPluginsOrMods ? (
+                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                            {/* Installed Section */}
+                            <CustomCard title={`Instalados (${files.length})`} icon={<Package className="h-4 w-4" />}>
+                                <div className="divide-y divide-gray-800/50 max-h-[600px] overflow-y-auto">
+                                    {isLoading ? (
+                                        <LoadingState />
+                                    ) : files.length > 0 ? (
+                                        files.map(file => (
+                                            <div key={file.name} className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors group">
                                                 <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
-                                                        <Plus className="h-4 w-4" />
+                                                    <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 shrink-0">
+                                                        <Package className="h-4 w-4" />
                                                     </div>
                                                     <div className="truncate">
-                                                        <p className="text-sm font-bold text-gray-200 truncate">{item.name}</p>
-                                                        <p className="text-[10px] text-gray-500 uppercase font-bold">{item.version}</p>
+                                                        <p className="text-sm font-bold text-gray-200 truncate">{file.name}</p>
+                                                        <div className="flex gap-2">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold">{formatBytes(file.size)}</p>
+                                                            <p className="text-[10px] text-primary/60 uppercase font-black tracking-tighter shrink-0">INSTALADO</p>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    onClick={() => handleAdd(item.name)}
-                                                    disabled={actionLoading === item.name}
-                                                    className="h-8 text-[10px] font-black text-primary bg-primary/10 hover:bg-primary/20 rounded-lg shrink-0 disabled:opacity-50"
+                                                    onClick={() => handleRemove(file.name)}
+                                                    disabled={actionLoading === file.name}
+                                                    className="opacity-0 group-hover:opacity-100 h-8 text-[10px] font-black text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg disabled:opacity-50"
                                                 >
-                                                    {actionLoading === item.name ? <Loader2 className="h-3 w-3 animate-spin" /> : "AGREGAR"}
+                                                    {actionLoading === file.name ? <Loader2 className="h-3 w-3 animate-spin" /> : "QUITAR"}
                                                 </Button>
                                             </div>
-                                            <div className="pl-11 space-y-1">
-                                                <p className="text-xs text-gray-400 leading-tight">{item.description}</p>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-[9px] font-black uppercase text-gray-600 tracking-widest">Alcance:</span>
-                                                    <span className="text-[9px] font-black uppercase text-primary/60">{item.scope}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="p-8 text-center opacity-30">
-                                        <Search className="h-8 w-8 mx-auto mb-2 text-gray-600" />
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">No se encontraron resultados</p>
+                                        ))
+                                    ) : <EmptyState />}
+                                </div>
+                            </CustomCard>
+
+                            {/* Available Section */}
+                            <CustomCard title="Catálogo Disponible" icon={<Plus className="h-4 w-4" />}>
+                                {/* Search Bar */}
+                                <div className="p-4 border-b border-gray-800/50 bg-gray-900/20">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                                        <Input
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            placeholder="Buscar plugins/mods..."
+                                            className="pl-10 pr-10 bg-black/40 border-gray-700 focus:border-primary h-9 text-sm"
+                                        />
+                                        {searchQuery && (
+                                            <button
+                                                onClick={() => setSearchQuery("")}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                        </CustomCard>
-                    </div>
-                ) : isLogs ? (
-                    <Card className="bg-black/40 backdrop-blur-xl border-gray-800 overflow-hidden flex flex-col shadow-2xl rounded-2xl">
-                        <CardHeader className="py-4 px-6 border-b border-gray-800 bg-gray-900/30 flex flex-row items-center justify-between">
-                            <CardTitle className="text-sm font-bold flex items-center gap-2">
-                                <FileText className="h-4 w-4 text-primary" />
-                                <span className="uppercase tracking-widest text-[10px] text-gray-500">Archivos de Registro</span>
-                            </CardTitle>
-                            <Button variant="ghost" size="sm" onClick={() => fetchFiles(currentDir)} className="h-8 text-[10px] font-bold gap-2">
-                                <RotateCw className="h-3 w-3" /> Actualizar
-                            </Button>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            {isLoading ? <LoadingState /> : files.length > 0 ? (
-                                <div className="divide-y divide-gray-800/50">
-                                    {files.map(file => (
-                                        <div
-                                            key={file.name}
-                                            className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors group cursor-pointer"
-                                            onClick={() => handleViewLog(file.name)}
-                                        >
-                                            <div className="flex items-center gap-3 min-w-0">
-                                                <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500 shrink-0">
-                                                    <FileText className="h-4 w-4" />
+                                </div>
+
+                                <div className="divide-y divide-gray-800/50 max-h-[550px] overflow-y-auto">
+                                    {filteredAvailableItems.length > 0 ? (
+                                        filteredAvailableItems.map(item => (
+                                            <div key={item.name} className="flex flex-col p-4 hover:bg-white/[0.02] transition-colors group gap-3">
+                                                <div className="flex items-center justify-between min-w-0">
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                                                            <Plus className="h-4 w-4" />
+                                                        </div>
+                                                        <div className="truncate">
+                                                            <p className="text-sm font-bold text-gray-200 truncate">{item.name}</p>
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold">{item.version}</p>
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleAdd(item.name)}
+                                                        disabled={actionLoading === item.name}
+                                                        className="h-8 text-[10px] font-black text-primary bg-primary/10 hover:bg-primary/20 rounded-lg shrink-0 disabled:opacity-50"
+                                                    >
+                                                        {actionLoading === item.name ? <Loader2 className="h-3 w-3 animate-spin" /> : "AGREGAR"}
+                                                    </Button>
                                                 </div>
-                                                <div className="truncate">
-                                                    <p className="text-sm font-bold text-gray-200 truncate">{file.name}</p>
-                                                    <div className="flex gap-3">
-                                                        <p className="text-[10px] text-gray-500 uppercase font-bold">{formatBytes(file.size)}</p>
-                                                        <p className="text-[10px] text-gray-600">{new Date(file.mtime).toLocaleDateString()}</p>
+                                                <div className="pl-11 space-y-1">
+                                                    <p className="text-xs text-gray-400 leading-tight">{item.description}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[9px] font-black uppercase text-gray-600 tracking-widest">Alcance:</span>
+                                                        <span className="text-[9px] font-black uppercase text-primary/60">{item.scope}</span>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="opacity-0 group-hover:opacity-100 h-8 text-[10px] font-black text-primary bg-primary/10 hover:bg-primary/20 rounded-lg gap-2"
-                                            >
-                                                <Eye className="h-3 w-3" />
-                                                VER
-                                            </Button>
+                                        ))
+                                    ) : (
+                                        <div className="p-8 text-center opacity-30">
+                                            <Search className="h-8 w-8 mx-auto mb-2 text-gray-600" />
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">No se encontraron resultados</p>
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
-                            ) : <EmptyState />}
-                        </CardContent>
-                    </Card>
-                ) : null}
+                            </CustomCard>
+                        </div>
+                    ) : isLogs ? (
+                        <Card className="bg-black/40 backdrop-blur-xl border-gray-800 overflow-hidden flex flex-col shadow-2xl rounded-2xl">
+                            <CardHeader className="py-4 px-6 border-b border-gray-800 bg-gray-900/30 flex flex-row items-center justify-between">
+                                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                    <FileText className="h-4 w-4 text-primary" />
+                                    <span className="uppercase tracking-widest text-[10px] text-gray-500">Archivos de Registro</span>
+                                </CardTitle>
+                                <Button variant="ghost" size="sm" onClick={() => fetchFiles(currentDir)} className="h-8 text-[10px] font-bold gap-2">
+                                    <RotateCw className="h-3 w-3" /> Actualizar
+                                </Button>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {isLoading ? <LoadingState /> : files.length > 0 ? (
+                                    <div className="divide-y divide-gray-800/50">
+                                        {files.map(file => (
+                                            <div
+                                                key={file.name}
+                                                className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors group cursor-pointer"
+                                                onClick={() => handleViewLog(file.name)}
+                                            >
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500 shrink-0">
+                                                        <FileText className="h-4 w-4" />
+                                                    </div>
+                                                    <div className="truncate">
+                                                        <p className="text-sm font-bold text-gray-200 truncate">{file.name}</p>
+                                                        <div className="flex gap-3">
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold">{formatBytes(file.size)}</p>
+                                                            <p className="text-[10px] text-gray-600">{new Date(file.mtime).toLocaleDateString()}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="opacity-0 group-hover:opacity-100 h-8 text-[10px] font-black text-primary bg-primary/10 hover:bg-primary/20 rounded-lg gap-2"
+                                                >
+                                                    <Eye className="h-3 w-3" />
+                                                    VER
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : <EmptyState />}
+                            </CardContent>
+                        </Card>
+                    ) : null}
+                </div>
             </div>
         </div>
     );
