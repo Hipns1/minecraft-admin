@@ -8,57 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Folder, File, Loader2, FolderTree, Package, FileText, RotateCw, Plus, Search, X, Eye, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { SearchModsDialog } from "./SearchModsDialog";
 
 const SECTIONS = [
     { id: "plugins", label: "Plugins", icon: FolderTree },
     { id: "mods", label: "Mods", icon: Package },
     { id: "logs", label: "Registros", icon: FileText },
-];
-
-const AVAILABLE_PLUGINS = [
-    { name: "EssentialsX", version: "2.19.0", description: "Utilidades de administración, economía y comandos básicos.", scope: "Global / Admin", type: "plugins" },
-    { name: "WorldEdit", version: "7.2.10", description: "Editor de mapas masivo mediante comandos y herramientas.", scope: "Construcción", type: "plugins" },
-    { name: "LuckPerms", version: "5.4.0", description: "Sistema avanzado de permisos para grupos y jugadores.", scope: "Seguridad / Rangos", type: "plugins" },
-    { name: "Vault", version: "1.7.3", description: "API puente para conectar plugins de economía y chat.", scope: "Sistema", type: "plugins" },
-    { name: "SkinRestorer", version: "14.2.3", description: "Permite restaurar y cambiar skins en servidores offline/no-premium.", scope: "Visual / Usuarios", type: "plugins" },
-    { name: "ClearLag", version: "3.2.2", description: "Optimización remota de entidades y reducción de lag del servidor.", scope: "Rendimiento", type: "plugins" },
-    { name: "Multiverse-Core", version: "4.3.1", description: "Gestión de múltiples mundos simultáneos en el servidor.", scope: "Mundos", type: "plugins" },
-    { name: "ViaVersion", version: "4.4.2", description: "Permite que versiones más nuevas de Minecraft entren al servidor.", scope: "Compatibilidad", type: "plugins" },
-    { name: "Dynmap", version: "3.4", description: "Mapa web en tiempo real del servidor con interfaz interactiva.", scope: "Web / Visual", type: "plugins" },
-    { name: "ProtocolLib", version: "5.0.0", description: "Biblioteca para manipular paquetes de red de Minecraft.", scope: "Sistema / API", type: "plugins" },
-    { name: "WorldGuard", version: "7.0.7", description: "Protección avanzada de regiones y control de permisos por área.", scope: "Seguridad / Protección", type: "plugins" },
-    { name: "Citizens", version: "2.0.30", description: "Framework completo para crear y gestionar NPCs personalizados.", scope: "NPCs / Funcional", type: "plugins" },
-    { name: "mcMMO", version: "2.1.215", description: "Sistema RPG con skills, niveles y habilidades especiales.", scope: "RPG / Jugabilidad", type: "plugins" },
-    { name: "GriefPrevention", version: "16.18", description: "Protección automática de terrenos sin comandos complicados.", scope: "Protección / Claims", type: "plugins" },
-    { name: "CoreProtect", version: "21.2", description: "Logger completo de bloques y acciones para rollback.", scope: "Admin / Seguridad", type: "plugins" },
-    { name: "PlaceholderAPI", version: "2.11.2", description: "API para usar placeholders dinámicos en otros plugins.", scope: "Sistema / API", type: "plugins" },
-    { name: "HolographicDisplays", version: "3.0.0", description: "Creación de textos flotantes y hologramas personalizables.", scope: "Visual / Decoración", type: "plugins" },
-    { name: "ViaBackwards", version: "4.5.1", description: "Permite que versiones antiguas de Minecraft se conecten al servidor.", scope: "Compatibilidad", type: "plugins" },
-    { name: "FastAsyncWorldEdit", version: "2.5.0", description: "Versión optimizada de WorldEdit para ediciones masivas.", scope: "Construcción / Performance", type: "plugins" },
-    { name: "ChestShop", version: "3.12", description: "Sistema de tiendas con cofres para compraventa automática.", scope: "Economía / Comercio", type: "plugins" },
-];
-
-const AVAILABLE_MODS = [
-    { name: "JourneyMap", version: "1.19.2-5.9.7", description: "Mapa detallado en tiempo real con minimapa e interfaz completa.", scope: "Interfaz / Jugador", type: "mods" },
-    { name: "JEI (Just Enough Items)", version: "10.0.0", description: "Visualizador de recetas y buscador de todos los bloques del juego.", scope: "Interfaz / Guía", type: "mods" },
-    { name: "Mouse Tweaks", version: "2.22", description: "Mejoras drásticas de usabilidad para el inventario y cofres.", scope: "Jugabilidad", type: "mods" },
-    { name: "AppleSkin", version: "2.4.0", description: "Muestra información de saturación y nutrición en la barra de comida.", scope: "Visual / HUD", type: "mods" },
-    { name: "Clumps", version: "9.0.0", description: "Agrupa los orbes de experiencia en uno solo para reducir lag.", scope: "Rendimiento", type: "mods" },
-    { name: "Simple Voice Chat", version: "2.3.2", description: "Chat de voz por proximidad integrado directamente en el juego.", scope: "Social / Audio", type: "mods" },
-    { name: "Sodium", version: "0.4.10", description: "Optimización extrema de renderizado y FPS.", scope: "Rendimiento / Gráficos", type: "mods" },
-    { name: "Iris Shaders", version: "1.6.4", description: "Soporte completo para shaders con compatibilidad Sodium.", scope: "Gráficos / Visual", type: "mods" },
-    { name: "Lithium", version: "0.11.1", description: "Optimización general del servidor y lógica del juego.", scope: "Rendimiento / Server", type: "mods" },
-    { name: "Phosphor", version: "0.8.1", description: "Optimización del motor de iluminación del juego.", scope: "Rendimiento / Lighting", type: "mods" },
-    { name: "Mod Menu", version: "6.1.0", description: "Interfaz para configurar mods instalados sin editar archivos.", scope: "Utilidad / Config", type: "mods" },
-    { name: "Xaero's Minimap", version: "23.1.0", description: "Minimapa liviano y altamente personalizable.", scope: "Interfaz / Navegación", type: "mods" },
-    { name: "Waystones", version: "11.4.0", description: "Puntos de teletransporte entre ubicaciones importantes.", scope: "Transporte / Funcional", type: "mods" },
-    { name: "Farmers Delight", version: "1.2.1", description: "Expansión completa del sistema de agricultura y cocina.", scope: "Contenido / Farming", type: "mods" },
-    { name: "Create", version: "0.5.1", description: "Mecánicas avanzadas de maquinaria y automatización.", scope: "Tecnología / Funcional", type: "mods" },
-    { name: "Biomes O' Plenty", version: "17.1.2", description: "Añade más de 80 biomas nuevos al mundo.", scope: "Worldgen / Exploración", type: "mods" },
-    { name: "Iron Chests", version: "14.2.5", description: "Cofres mejorados con mayor capacidad de almacenamiento.", scope: "Almacenamiento / QoL", type: "mods" },
-    { name: "The Twilight Forest", version: "4.2.1518", description: "Nueva dimensión con jefes, mazmorras y estructuras.", scope: "Aventura / Dimensión", type: "mods" },
-    { name: "Tinkers Construct", version: "3.6.4", description: "Sistema modular para crear herramientas personalizadas.", scope: "Herramientas / Crafting", type: "mods" },
-    { name: "Pam's HarvestCraft", version: "9.1.0", description: "Cientos de nuevos cultivos, árboles y recetas de comida.", scope: "Farming / Comida", type: "mods" },
 ];
 
 function formatBytes(bytes: number, decimals = 2) {
@@ -78,6 +33,7 @@ export function FileManager() {
     const [searchQuery, setSearchQuery] = useState("");
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+    const [showSearchDialog, setShowSearchDialog] = useState(false);
 
     // Auto-hide notification after 5 seconds
     useEffect(() => {
@@ -185,14 +141,6 @@ export function FileManager() {
 
     const isPluginsOrMods = currentDir === "plugins" || currentDir === "mods";
     const isLogs = currentDir === "logs";
-    const availableItems = currentDir === "plugins" ? AVAILABLE_PLUGINS : AVAILABLE_MODS;
-
-    // Filter available items based on search
-    const filteredAvailableItems = availableItems.filter(item =>
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.scope.toLowerCase().includes(searchQuery.toLowerCase())
-    );
 
     return (
         <div className="flex flex-col gap-6">
@@ -293,67 +241,27 @@ export function FileManager() {
                             </CustomCard>
 
                             {/* Available Section */}
-                            <CustomCard title="Catálogo Disponible" icon={<Plus className="h-4 w-4" />}>
-                                {/* Search Bar */}
-                                <div className="p-4 border-b border-gray-800/50 bg-gray-900/20">
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                                        <Input
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            placeholder="Buscar plugins/mods..."
-                                            className="pl-10 pr-10 bg-black/40 border-gray-700 focus:border-primary h-9 text-sm"
-                                        />
-                                        {searchQuery && (
-                                            <button
-                                                onClick={() => setSearchQuery("")}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </button>
-                                        )}
+                            <CustomCard title={`Buscar en Modrinth`} icon={<Search className="h-4 w-4" />}>
+                                <div className="p-8 flex flex-col items-center justify-center text-center gap-6">
+                                    <div className="p-4 rounded-full bg-primary/10 text-primary">
+                                        <Package className="h-10 w-10" />
                                     </div>
-                                </div>
-
-                                <div className="divide-y divide-gray-800/50 max-h-[550px] overflow-y-auto">
-                                    {filteredAvailableItems.length > 0 ? (
-                                        filteredAvailableItems.map(item => (
-                                            <div key={item.name} className="flex flex-col p-4 hover:bg-white/[0.02] transition-colors group gap-3">
-                                                <div className="flex items-center justify-between min-w-0">
-                                                    <div className="flex items-center gap-3 min-w-0">
-                                                        <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
-                                                            <Plus className="h-4 w-4" />
-                                                        </div>
-                                                        <div className="truncate">
-                                                            <p className="text-sm font-bold text-gray-200 truncate">{item.name}</p>
-                                                            <p className="text-[10px] text-gray-500 uppercase font-bold">{item.version}</p>
-                                                        </div>
-                                                    </div>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleAdd(item.name)}
-                                                        disabled={actionLoading === item.name}
-                                                        className="h-8 text-[10px] font-black text-primary bg-primary/10 hover:bg-primary/20 rounded-lg shrink-0 disabled:opacity-50"
-                                                    >
-                                                        {actionLoading === item.name ? <Loader2 className="h-3 w-3 animate-spin" /> : "AGREGAR"}
-                                                    </Button>
-                                                </div>
-                                                <div className="pl-11 space-y-1">
-                                                    <p className="text-xs text-gray-400 leading-tight">{item.description}</p>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-[9px] font-black uppercase text-gray-600 tracking-widest">Alcance:</span>
-                                                        <span className="text-[9px] font-black uppercase text-primary/60">{item.scope}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="p-8 text-center opacity-30">
-                                            <Search className="h-8 w-8 mx-auto mb-2 text-gray-600" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">No se encontraron resultados</p>
-                                        </div>
-                                    )}
+                                    <div className="space-y-2">
+                                        <h3 className="text-lg font-black text-white">¿Buscas algo nuevo?</h3>
+                                        <p className="text-sm text-gray-500 max-w-[280px] mx-auto">
+                                            Explora miles de {currentDir === "plugins" ? "plugins" : "mods"} directamente desde la API oficial de Modrinth.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        onClick={() => setShowSearchDialog(true)}
+                                        className="w-full max-w-[200px] bg-primary hover:bg-primary/90 text-black font-black h-12 rounded-xl shadow-lg shadow-primary/20"
+                                    >
+                                        <Search className="mr-2 h-5 w-5" />
+                                        BUSCAR {currentDir.toUpperCase()}
+                                    </Button>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">
+                                        Resultados en tiempo real • API Oficial
+                                    </p>
                                 </div>
                             </CustomCard>
                         </div>
@@ -406,6 +314,16 @@ export function FileManager() {
                     ) : null}
                 </div>
             </div>
+            {showSearchDialog && isPluginsOrMods && (
+                <SearchModsDialog
+                    type={currentDir as "mods" | "plugins"}
+                    onClose={() => setShowSearchDialog(false)}
+                    onInstallSuccess={() => {
+                        fetchFiles(currentDir);
+                        setShowSearchDialog(false);
+                    }}
+                />
+            )}
         </div>
     );
 }

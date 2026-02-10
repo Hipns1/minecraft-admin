@@ -2,51 +2,39 @@ import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
+import crypto from "crypto";
 
-// Plugin/Mod download sources with their download URLs
-const PLUGIN_SOURCES: Record<string, { url: string, fileName: string }> = {
-    "EssentialsX": {
-        url: "https://ci.ender.zone/job/EssentialsX/lastSuccessfulBuild/artifact/jars/EssentialsX-2.20.1.jar",
-        fileName: "EssentialsX.jar"
-    },
-    "WorldEdit": {
-        url: "https://dev.bukkit.org/projects/worldedit/files/latest",
-        fileName: "WorldEdit.jar"
-    },
-    "LuckPerms": {
-        url: "https://download.luckperms.net/1515/bukkit/loader/LuckPerms-Bukkit-5.4.102.jar",
-        fileName: "LuckPerms.jar"
-    },
-    "Vault": {
-        url: "https://github.com/MilkBowl/Vault/releases/download/1.7.3/Vault.jar",
-        fileName: "Vault.jar"
-    },
-    "CoreProtect": {
-        url: "https://github.com/PlayPro/CoreProtect/releases/download/21.3/CoreProtect-21.3.jar",
-        fileName: "CoreProtect.jar"
-    }
-};
+const MODRINTH_API_BASE = "https://api.modrinth.com/v2";
 
-const MOD_SOURCES: Record<string, { url: string, fileName: string }> = {
-    "Sodium": {
-        url: "https://cdn.modrinth.com/data/AANobbMI/versions/mc1.19.2-0.4.4/sodium-fabric-mc1.19.2-0.4.4+build.18.jar",
-        fileName: "sodium-fabric.jar"
-    },
-    "Lithium": {
-        url: "https://cdn.modrinth.com/data/gvQqBUqZ/versions/mc1.19.2-0.11.1/lithium-fabric-mc1.19.2-0.11.1.jar",
-        fileName: "lithium-fabric.jar"
-    },
-    "Phosphor": {
-        url: "https://cdn.modrinth.com/data/hEOCdOgW/versions/mc1.19.x-0.8.1/phosphor-fabric-mc1.19.x-0.8.1.jar",
-        fileName: "phosphor-fabric.jar"
-    }
-};
+interface ModrinthVersion {
+    id: string;
+    project_id: string;
+    name: string;
+    version_number: string;
+    version_type: "release" | "beta" | "alpha";
+    loaders: string[];
+    game_versions: string[];
+    files: ModrinthFile[];
+    downloads: number;
+    date_published: string;
+}
 
-async function downloadFile(url: string, destinationPath: string): Promise<void> {
+interface ModrinthFile {
+    hashes: {
+        sha512: string;
+        sha1: string;
+    };
+    url: string;
+    filename: string;
+    primary: boolean;
+    size: number;
+}
+
+async function downloadFile(url: string, destinationPath: string, expectedHash?: string): Promise<void> {
     const response = await fetch(url, {
         redirect: 'follow',
         headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'User-Agent': 'minecraft-admin-panel/1.0 (contact@example.com)'
         }
     });
 
@@ -56,6 +44,18 @@ async function downloadFile(url: string, destinationPath: string): Promise<void>
 
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+
+    // Validate hash if provided
+    if (expectedHash) {
+        const hash = crypto.createHash('sha512');
+        hash.update(buffer);
+        const calculatedHash = hash.digest('hex');
+
+        if (calculatedHash !== expectedHash) {
+            throw new Error('Hash mismatch - file may be corrupted or tampered with');
+        }
+    }
+
     await fs.writeFile(destinationPath, buffer);
 }
 
@@ -67,10 +67,10 @@ export async function POST(request: Request) {
 
     try {
         const body = await request.json();
-        const { pluginName, type } = body;
+        const { projectSlug, mcVersion, loader, type } = body;
 
-        if (!pluginName || !type) {
-            return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
+        if (!projectSlug || !mcVersion || !loader || !type) {
+            return NextResponse.json({ error: "Missing required parameters" }, { status: 400 });
         }
 
         // Security check
@@ -79,23 +79,56 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Invalid type" }, { status: 403 });
         }
 
-        // Get the appropriate source
-        const sources = type === "plugins" ? PLUGIN_SOURCES : MOD_SOURCES;
-        const source = sources[pluginName];
+        // Step 1: Get project versions from Modrinth
+        const params = new URLSearchParams({
+            loaders: JSON.stringify([loader]),
+            game_versions: JSON.stringify([mcVersion])
+        });
 
-        if (!source) {
+        const versionsUrl = `${MODRINTH_API_BASE}/project/${projectSlug}/version?${params}`;
+
+        const versionsResponse = await fetch(versionsUrl, {
+            headers: {
+                'User-Agent': 'minecraft-admin-panel/1.0 (contact@example.com)'
+            }
+        });
+
+        if (!versionsResponse.ok) {
+            if (versionsResponse.status === 404) {
+                return NextResponse.json({
+                    error: "Proyecto no encontrado en Modrinth"
+                }, { status: 404 });
+            }
+            throw new Error(`Modrinth API error: ${versionsResponse.statusText}`);
+        }
+
+        const versions: ModrinthVersion[] = await versionsResponse.json();
+
+        if (versions.length === 0) {
             return NextResponse.json({
-                error: `${pluginName} no está disponible para descarga automática. Por favor, descárgalo manualmente desde su sitio oficial.`
+                error: `No hay versiones disponibles para Minecraft ${mcVersion} con ${loader}`
             }, { status: 404 });
         }
 
-        // Get base path
+        // Step 2: Get the latest stable version (prefer release over beta/alpha)
+        const latestVersion = versions.find(v => v.version_type === "release") || versions[0];
+
+        // Step 3: Get the primary file
+        const primaryFile = latestVersion.files.find(f => f.primary) || latestVersion.files[0];
+
+        if (!primaryFile) {
+            return NextResponse.json({
+                error: "No se encontró archivo descargable"
+            }, { status: 404 });
+        }
+
+        // Step 4: Prepare download
         const basePath = process.env.MC_LOG_FILE
             ? path.dirname(path.dirname(process.env.MC_LOG_FILE))
             : "/opt/minecraft";
 
         const targetDir = path.join(basePath, type);
-        const targetPath = path.join(targetDir, source.fileName);
+        const targetPath = path.join(targetDir, primaryFile.filename);
 
         // Ensure directory exists
         await fs.mkdir(targetDir, { recursive: true });
@@ -104,30 +137,47 @@ export async function POST(request: Request) {
         try {
             await fs.access(targetPath);
             return NextResponse.json({
-                error: `${pluginName} ya está instalado.`
+                error: `${primaryFile.filename} ya está instalado`
             }, { status: 409 });
         } catch {
             // File doesn't exist, proceed with download
         }
 
-        // Download the file
+        // Step 5: Download and validate
         try {
-            await downloadFile(source.url, targetPath);
+            await downloadFile(
+                primaryFile.url,
+                targetPath,
+                primaryFile.hashes.sha512
+            );
+
             return NextResponse.json({
                 success: true,
-                message: `${pluginName} instalado correctamente.`,
-                fileName: source.fileName
+                message: `${latestVersion.name} instalado correctamente`,
+                fileName: primaryFile.filename,
+                version: latestVersion.version_number,
+                size: primaryFile.size,
+                downloads: latestVersion.downloads
             });
         } catch (downloadError) {
             console.error("Download failed:", downloadError);
+
+            // Clean up partial download if it exists
+            try {
+                await fs.unlink(targetPath);
+            } catch { }
+
             return NextResponse.json({
-                error: `Error al descargar ${pluginName}. Por favor, intenta nuevamente o descárgalo manualmente.`
+                error: `Error al descargar: ${downloadError instanceof Error ? downloadError.message : 'Unknown error'}`
             }, { status: 500 });
         }
 
     } catch (error) {
-        console.error("Failed to add plugin/mod:", error);
-        return NextResponse.json({ error: "Could not add plugin/mod" }, { status: 500 });
+        console.error("Failed to install mod/plugin:", error);
+        return NextResponse.json({
+            error: "Error al instalar mod/plugin",
+            details: error instanceof Error ? error.message : "Unknown error"
+        }, { status: 500 });
     }
 }
 
@@ -187,10 +237,13 @@ export async function DELETE(request: Request) {
             // Folder doesn't exist, ignore
         }
 
-        return NextResponse.json({ success: true, message: "Plugin/mod removed successfully" });
+        return NextResponse.json({
+            success: true,
+            message: `${fileName} eliminado correctamente`
+        });
 
     } catch (error) {
-        console.error("Failed to delete plugin/mod:", error);
-        return NextResponse.json({ error: "Could not delete plugin/mod" }, { status: 500 });
+        console.error("Failed to delete mod/plugin:", error);
+        return NextResponse.json({ error: "Could not delete mod/plugin" }, { status: 500 });
     }
 }
