@@ -28,8 +28,8 @@ export async function GET() {
                 if (versionMatch) {
                     version = versionMatch[1];
                 } else {
-                    // Fallback for non-standard responses
-                    version = versionResponse.split("\n")[0].substring(0, 30);
+                    // Fallback for non-standard responses, strip color codes
+                    version = versionResponse.split("\n")[0].replace(/§[0-9a-fk-or]/gi, "").substring(0, 30).trim();
                 }
 
                 // Typically "list" command returns: "There are 2 of a max of 20 players online: Player1, Player2"

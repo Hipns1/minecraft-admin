@@ -5,17 +5,28 @@
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Folder, File, Loader2, FolderTree, Package, Box, Globe, Settings, FileText, RotateCw } from "lucide-react";
+import { Folder, File, Loader2, FolderTree, Package, Box, Globe, Settings, FileText, RotateCw, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const SECTIONS = [
-    { id: "plugins", label: "Plugins", icon: FolderTree, description: "Manage server extensions" },
-    { id: "mods", label: "Mods", icon: Package, description: "Modifications and engines" },
-    { id: "plugins", label: "Plugins", icon: Package, description: "Extensiones del servidor" },
-    { id: "mods", label: "Mods", icon: Box, description: "Modificadores de juego" },
-    { id: "world", label: "Mundo", icon: Globe, description: "Base de datos del mapa" },
-    { id: "config", label: "Configuración", icon: Settings, description: "Archivos de sistema" },
-    { id: "logs", label: "Registros", icon: FileText, description: "Historial de eventos" },
+    { id: "plugins", label: "Plugins", icon: FolderTree },
+    { id: "mods", label: "Mods", icon: Package },
+    { id: "world", label: "Mundo", icon: Globe },
+    { id: "config", label: "Configuración", icon: Settings },
+    { id: "logs", label: "Registros", icon: FileText },
+];
+
+const AVAILABLE_PLUGINS = [
+    { name: "EssentialsX", version: "2.19.0", description: "Utilidades esenciales", type: "plugins" },
+    { name: "WorldEdit", version: "7.2.10", description: "Editor de mapas", type: "plugins" },
+    { name: "LuckPerms", version: "5.4.0", description: "Gestión de permisos", type: "plugins" },
+    { name: "Vault", version: "1.7.3", description: "API de economía", type: "plugins" },
+];
+
+const AVAILABLE_MODS = [
+    { name: "JourneyMap", version: "1.19.2", description: "Mapa en tiempo real", type: "mods" },
+    { name: "JEI", version: "10.0.0", description: "Lista de items e ítems", type: "mods" },
+    { name: "Mouse Tweaks", version: "2.22", description: "Mejoras de inventario", type: "mods" },
 ];
 
 function formatBytes(bytes: number, decimals = 2) {
@@ -38,7 +49,6 @@ export function FileManager() {
             const res = await fetch(`/api/minecraft/files?dir=${dir}`);
             const data = await res.json();
             if (data.files) {
-                // Sort: Directories first, then alphabetical
                 const sorted = data.files.sort((a: any, b: any) => {
                     if (a.isDirectory && !b.isDirectory) return -1;
                     if (!a.isDirectory && b.isDirectory) return 1;
@@ -59,109 +69,187 @@ export function FileManager() {
         fetchFiles(currentDir);
     }, [currentDir]);
 
+    const isPluginsOrMods = currentDir === "plugins" || currentDir === "mods";
+    const availableItems = currentDir === "plugins" ? AVAILABLE_PLUGINS : AVAILABLE_MODS;
+
     return (
-        <div className="grid gap-6 lg:grid-cols-4">
-            <div className="lg:col-span-1 flex flex-row overflow-x-auto lg:flex-col gap-2 pb-2 lg:pb-0 lg:space-y-3 no-scrollbar scroll-smooth">
-                {SECTIONS.map(section => (
-                    <button
-                        key={section.id}
-                        onClick={() => setCurrentDir(section.id)}
-                        className={cn(
-                            "flex-none lg:w-full min-w-[140px] text-left p-3 lg:p-4 rounded-xl border transition-all duration-200 group",
-                            currentDir === section.id
-                                ? "bg-primary/10 border-primary/50 ring-1 ring-primary/20"
-                                : "bg-gray-950/40 border-gray-800 hover:border-gray-700 hover:bg-gray-900/40"
-                        )}
-                    >
-                        <div className="flex items-center lg:items-center gap-3">
-                            <div className={cn(
-                                "p-1.5 lg:p-2 rounded-lg transition-colors",
-                                currentDir === section.id ? "bg-primary text-black" : "bg-gray-900 group-hover:bg-gray-800 text-gray-400"
-                            )}>
-                                <section.icon className="h-4 w-4 lg:h-5 lg:w-5" />
+        <div className="flex flex-col lg:grid gap-6 lg:grid-cols-4">
+            {/* Sidebar / Tabs */}
+            <div className="lg:col-span-1">
+                <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto pb-4 lg:pb-0 no-scrollbar">
+                    {SECTIONS.map(section => (
+                        <button
+                            key={section.id}
+                            onClick={() => setCurrentDir(section.id)}
+                            className={cn(
+                                "flex-none lg:w-full min-w-[120px] text-left p-3 lg:p-4 rounded-2xl border transition-all duration-300 group",
+                                currentDir === section.id
+                                    ? "bg-primary/10 border-primary/40 ring-1 ring-primary/20"
+                                    : "bg-gray-950/40 border-gray-800/50 hover:border-gray-700 hover:bg-gray-900/40"
+                            )}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className={cn(
+                                    "p-2 rounded-xl transition-colors shrink-0",
+                                    currentDir === section.id ? "bg-primary text-black" : "bg-gray-900 group-hover:bg-gray-800 text-gray-500"
+                                )}>
+                                    <section.icon className="h-4 w-4" />
+                                </div>
+                                <span className={cn(
+                                    "text-sm font-bold tracking-tight",
+                                    currentDir === section.id ? "text-white" : "text-gray-400"
+                                )}>
+                                    {section.label}
+                                </span>
                             </div>
-                            <div className="min-w-0">
-                                <p className={cn("text-xs lg:text-sm font-bold truncate", currentDir === section.id ? "text-white" : "text-gray-400")}>{section.label}</p>
-                                <p className="hidden lg:block text-[10px] text-gray-500 uppercase tracking-tighter truncate">{section.description}</p>
-                            </div>
-                        </div>
-                    </button>
-                ))}
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            <Card className="lg:col-span-3 bg-black/40 backdrop-blur-xl border-gray-800 overflow-hidden flex flex-col shadow-2xl rounded-2xl">
-                <CardHeader className="py-4 lg:py-5 px-4 lg:px-6 border-b border-gray-800 bg-gray-900/30">
-                    <div className="flex items-center justify-between">
-                        <CardTitle className="text-xs lg:text-sm font-bold flex items-center gap-2 truncate">
-                            <Folder className="h-4 w-4 text-primary shrink-0" />
-                            <span className="text-gray-500 hidden sm:inline">Raíz /</span>
-                            <span className="text-white truncate">{currentDir}</span>
-                        </CardTitle>
-                        <Button variant="ghost" size="sm" onClick={() => fetchFiles(currentDir)} className="h-8 text-[10px] lg:text-xs font-bold gap-2 shrink-0">
-                            <RotateCw className="h-3 w-3" /> Actualizar
-                        </Button>
-                    </div>
-                </CardHeader>
-                <CardContent className="p-0 overflow-hidden flex flex-col">
-                    {isLoading ? (
-                        <div className="flex flex-col items-center justify-center py-24 gap-4">
-                            <Loader2 className="h-10 w-10 animate-spin text-primary opacity-50" />
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Sincronizando Datos</p>
-                        </div>
-                    ) : files.length > 0 ? (
-                        <div className="overflow-x-auto w-full">
-                            <table className="w-full text-left border-collapse min-w-[500px]">
-                                <thead>
-                                    <tr className="border-b border-gray-800/50 bg-gray-900/10">
-                                        <th className="px-4 lg:px-6 py-3 text-[10px] font-black uppercase tracking-widest text-gray-500">Nombre</th>
-                                        <th className="px-4 lg:px-6 py-3 text-[10px] font-black uppercase tracking-widest text-gray-500 text-right">Tamaño</th>
-                                        <th className="px-4 lg:px-6 py-3 text-[10px] font-black uppercase tracking-widest text-gray-500 text-right">Modificado</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-800/50">
-                                    {files.map(file => (
-                                        <tr key={file.name} className="group hover:bg-white/[0.02] transition-colors">
-                                            <td className="px-4 lg:px-6 py-3 lg:py-4">
-                                                <div className="flex items-center gap-3">
-                                                    {file.isDirectory ? (
-                                                        <div className="p-1.5 lg:p-2 rounded-lg bg-blue-500/10 text-blue-400">
-                                                            <Folder className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                                                        </div>
-                                                    ) : (
-                                                        <div className="p-1.5 lg:p-2 rounded-lg bg-gray-800/50 text-gray-400">
-                                                            {file.name.endsWith('.jar') ? <Package className="h-3.5 w-3.5 lg:h-4 lg:w-4 text-amber-500/70" /> : <File className="h-3.5 w-3.5 lg:h-4 lg:w-4" />}
-                                                        </div>
-                                                    )}
-                                                    <span className="text-xs lg:text-sm font-medium text-gray-300 group-hover:text-white transition-colors truncate max-w-[120px] sm:max-w-none">
-                                                        {file.name}
-                                                    </span>
+            {/* Main Content */}
+            <div className="lg:col-span-3 space-y-6">
+                {isPluginsOrMods ? (
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        {/* Installed Section */}
+                        <CustomCard title={`Instalados (${files.length})`} icon={<Box className="h-4 w-4" />}>
+                            <div className="divide-y divide-gray-800/50">
+                                {isLoading ? (
+                                    <LoadingState />
+                                ) : files.length > 0 ? (
+                                    files.map(file => (
+                                        <div key={file.name} className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors group">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 shrink-0">
+                                                    <Package className="h-4 w-4" />
                                                 </div>
-                                            </td>
-                                            <td className="px-4 lg:px-6 py-3 lg:py-4 text-right">
-                                                <span className="text-[10px] lg:text-xs font-mono text-gray-500">
-                                                    {file.isDirectory ? '--' : formatBytes(file.size)}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 lg:px-6 py-3 lg:py-4 text-right">
-                                                <span className="text-[10px] lg:text-xs text-gray-600">
-                                                    {new Date(file.mtime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-24 gap-2 opacity-30">
-                            <FolderTree className="h-10 w-10 text-gray-600" />
-                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                                Sector Vacío
-                            </p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                                                <div className="truncate">
+                                                    <p className="text-sm font-bold text-gray-200 truncate">{file.name}</p>
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold">{formatBytes(file.size)}</p>
+                                                </div>
+                                            </div>
+                                            <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 h-8 text-[10px] font-black text-rose-500 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg">
+                                                ELIMINAR
+                                            </Button>
+                                        </div>
+                                    ))
+                                ) : <EmptyState />}
+                            </div>
+                        </CustomCard>
+
+                        {/* Available Section */}
+                        <CustomCard title="Disponibles para agregar" icon={<Plus className="h-4 w-4" />}>
+                            <div className="divide-y divide-gray-800/50">
+                                {availableItems.map(item => (
+                                    <div key={item.name} className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors group">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                                                <Plus className="h-4 w-4" />
+                                            </div>
+                                            <div className="truncate">
+                                                <p className="text-sm font-bold text-gray-200 truncate">{item.name}</p>
+                                                <p className="text-[10px] text-gray-500 uppercase font-bold">{item.version}</p>
+                                            </div>
+                                        </div>
+                                        <Button variant="ghost" size="sm" className="h-8 text-[10px] font-black text-primary bg-primary/10 hover:bg-primary/20 rounded-lg">
+                                            INSTALAR
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        </CustomCard>
+                    </div>
+                ) : (
+                    <Card className="bg-black/40 backdrop-blur-xl border-gray-800 overflow-hidden flex flex-col shadow-2xl rounded-2xl">
+                        <CardHeader className="py-4 px-6 border-b border-gray-800 bg-gray-900/30 flex flex-row items-center justify-between">
+                            <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                <Folder className="h-4 w-4 text-primary" />
+                                <span className="uppercase tracking-widest text-[10px] text-gray-500">Navegación /</span>
+                                <span className="text-white">{currentDir}</span>
+                            </CardTitle>
+                            <Button variant="ghost" size="sm" onClick={() => fetchFiles(currentDir)} className="h-8 text-[10px] font-bold gap-2">
+                                <RotateCw className="h-3 w-3" /> Actualizar
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            {isLoading ? <LoadingState /> : files.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse min-w-[500px]">
+                                        <thead>
+                                            <tr className="border-b border-gray-800/50 bg-gray-900/10">
+                                                <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-gray-500">Nombre</th>
+                                                <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-gray-500 text-right">Tamaño</th>
+                                                <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-gray-500 text-right">Fecha</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-800/50">
+                                            {files.map(file => (
+                                                <tr key={file.name} className="group hover:bg-white/[0.02] transition-colors">
+                                                    <td className="px-6 py-3 shrink-0">
+                                                        <div className="flex items-center gap-3">
+                                                            {file.isDirectory ? (
+                                                                <Folder className="h-4 w-4 text-blue-400" />
+                                                            ) : (
+                                                                <File className="h-4 w-4 text-gray-500" />
+                                                            )}
+                                                            <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors truncate">
+                                                                {file.name}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-3 text-right">
+                                                        <span className="text-[10px] font-mono text-gray-500">
+                                                            {file.isDirectory ? '--' : formatBytes(file.size)}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-3 text-right">
+                                                        <span className="text-[10px] text-gray-600">
+                                                            {new Date(file.mtime).toLocaleDateString()}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : <EmptyState />}
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function CustomCard({ title, icon, children }: { title: string, icon: any, children: React.ReactNode }) {
+    return (
+        <Card className="bg-black/40 backdrop-blur-xl border-gray-800 overflow-hidden flex flex-col shadow-2xl rounded-2xl">
+            <CardHeader className="py-4 px-6 border-b border-gray-800 bg-gray-900/10">
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2">
+                    {icon}
+                    {title}
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+                {children}
+            </CardContent>
+        </Card>
+    );
+}
+
+function LoadingState() {
+    return (
+        <div className="flex flex-col items-center justify-center py-12 gap-4">
+            <Loader2 className="h-6 w-6 animate-spin text-primary opacity-50" />
+        </div>
+    );
+}
+
+function EmptyState() {
+    return (
+        <div className="flex flex-col items-center justify-center py-12 gap-2 opacity-30 text-center">
+            <FolderTree className="h-8 w-8 text-gray-600 mb-2" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Sin Archivos</p>
         </div>
     );
 }

@@ -31,7 +31,7 @@ export default async function DashboardPage() {
             if (versionMatch) {
                 version = versionMatch[1];
             } else {
-                version = versionResponse.split("\n")[0].substring(0, 20);
+                version = versionResponse.split("\n")[0].replace(/§[0-9a-fk-or]/gi, "").substring(0, 20).trim();
             }
 
             const listResponse = await rcon.send("list");

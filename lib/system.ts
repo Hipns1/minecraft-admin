@@ -101,18 +101,31 @@ export async function getSystemStatus(): Promise<{
     }
 }
 
+const CONTROL_METHOD = process.env.MC_CONTROL_METHOD || "systemd";
+const CONTAINER_NAME = process.env.MC_CONTAINER_NAME || "minecraft_server";
+
 export async function controlServer(action: "start" | "stop" | "restart") {
     const allowedActions = ["start", "stop", "restart"];
     if (!allowedActions.includes(action)) {
         throw new Error("Invalid action");
     }
 
-    // Uses sudo. Ensure the user running the web app has passwordless sudo for these specific commands.
     try {
-        await execAsync(`sudo systemctl ${action} ${SERVICE_NAME}`);
+        if (CONTROL_METHOD === "docker") {
+            const command = action === "restart" ? `docker restart ${CONTAINER_NAME}` :
+                action === "stop" ? `docker stop ${CONTAINER_NAME}` :
+                    `docker start ${CONTAINER_NAME}`;
+            await execAsync(command);
+        } else if (os.platform() === 'win32') {
+            // Basic fallback for Windows development
+            console.log(`[DEV] Mocking ${action} on Windows`);
+        } else {
+            // Default systemd
+            await execAsync(`sudo systemctl ${action} ${SERVICE_NAME}`);
+        }
         return true;
     } catch (error) {
-        console.error(`Failed to ${action} server:`, error);
+        console.error(`Failed to ${action} server using ${CONTROL_METHOD}:`, error);
         throw error;
     }
 }
