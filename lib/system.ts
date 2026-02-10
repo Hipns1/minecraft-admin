@@ -108,8 +108,22 @@ export async function detectLoader(): Promise<string> {
         const files = await fs.readdir(rootDir);
 
         // Priority check for specific indicators
+        // Paper 1.19+ uses config/paper-global.yml and config/paper-world-defaults.yml
+        const hasPaperConfig = files.includes('paper.yml') ||
+            files.some(f => f.includes('paper-global') || f.includes('paper-world')) ||
+            files.includes('config');
+
+        // If 'config' exists, check inside it for paper files
+        let paperInConfig = false;
+        if (files.includes('config')) {
+            try {
+                const configFiles = await fs.readdir(path.join(rootDir, 'config'));
+                if (configFiles.some(f => f.startsWith('paper-'))) paperInConfig = true;
+            } catch (e) { }
+        }
+
         if (files.includes('.fabric') || files.some(f => f.includes('fabric-server'))) return 'fabric';
-        if (files.includes('paper.yml') || files.some(f => f.includes('paper-global') || f.includes('paper-world'))) return 'paper';
+        if (hasPaperConfig || paperInConfig) return 'paper';
         if (files.includes('spigot.yml')) return 'spigot';
         if (files.includes('bukkit.yml')) return 'bukkit';
         if (files.some(f => f.toLowerCase().includes('forge'))) return 'forge';
@@ -120,8 +134,8 @@ export async function detectLoader(): Promise<string> {
         const jarFiles = files.filter(f => f.endsWith('.jar'));
         for (const jar of jarFiles) {
             const lowerJar = jar.toLowerCase();
-            if (lowerJar.includes('fabric')) return 'fabric';
             if (lowerJar.includes('paper')) return 'paper';
+            if (lowerJar.includes('fabric')) return 'fabric';
             if (lowerJar.includes('spigot')) return 'spigot';
             if (lowerJar.includes('forge')) return 'forge';
             if (lowerJar.includes('purpur')) return 'purpur';
