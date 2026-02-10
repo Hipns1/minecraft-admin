@@ -21,7 +21,10 @@ export function ServerControls({ active }: { active: boolean }) {
                     body: JSON.stringify({ action }),
                 });
 
-                if (!res.ok) throw new Error("Error al ejecutar comando");
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || "Error al ejecutar comando");
+                }
 
                 toast({
                     title: "Comando Enviado",
@@ -29,10 +32,10 @@ export function ServerControls({ active }: { active: boolean }) {
                 });
 
                 router.refresh();
-            } catch (error) {
+            } catch (error: any) {
                 toast({
-                    title: "Error",
-                    description: "No se pudo controlar el servidor.",
+                    title: "Error de Control",
+                    description: error.message || "No se pudo controlar el servidor.",
                     variant: "destructive",
                 });
             }

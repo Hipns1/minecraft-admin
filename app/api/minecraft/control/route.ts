@@ -19,8 +19,10 @@ export async function POST(request: Request) {
         await controlServer(action);
 
         return NextResponse.json({ success: true, message: `Server ${action} command sent.` });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Control API Error:", error);
-        return NextResponse.json({ error: "Failed to execute control command" }, { status: 500 });
+        return NextResponse.json({
+            error: error.message || "Failed to execute control command"
+        }, { status: 500 });
     }
 }

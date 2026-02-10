@@ -16,19 +16,79 @@ const SECTIONS = [
 ];
 
 const RECOMMENDED_PLUGINS = [
-    { slug: "essentialsx", name: "EssentialsX", author: "TeamCity", description: "Utilidades esenciales: teletransporte, economía, kits y más.", icon: "https://cdn.modrinth.com/data/S9u9iM4r/icon.png" },
-    { slug: "luckperms", name: "LuckPerms", author: "Luck", description: "El mejor sistema de permisos para rangos y seguridad.", icon: "https://cdn.modrinth.com/data/V9v62p4t/icon.png" },
-    { slug: "worldedit", name: "WorldEdit", author: "enginehub", description: "Editor de mapas masivo profesional.", icon: "https://cdn.modrinth.com/data/896689/icon.png" },
-    { slug: "placeholderapi", name: "PlaceholderAPI", author: "ExtendedClip", description: "API vital para mostrar información dinámica.", icon: "https://cdn.modrinth.com/data/12345/icon.png" },
-    { slug: "viaversion", name: "ViaVersion", author: "ViaVersion", description: "Permite la conexión de versiones de Minecraft nuevas.", icon: "https://cdn.modrinth.com/data/12345/icon.png" }
+    {
+        slug: "essentialsx",
+        name: "EssentialsX",
+        author: "TeamCity",
+        description: "El conjunto de utilidades más popular. Añade más de 100 comandos esenciales como /spawn, /home y /warp, además de economía y kits.",
+        icon: "https://cdn.modrinth.com/data/S9u9iM4r/icon.png"
+    },
+    {
+        slug: "luckperms",
+        name: "LuckPerms",
+        author: "Luck",
+        description: "Sistema de permisos avanzado y flexible. Gestiona rangos y acceso a comandos de forma sencilla mediante su potente editor web integrado.",
+        icon: "https://cdn.modrinth.com/data/V9v62p4t/icon.png"
+    },
+    {
+        slug: "worldedit",
+        name: "WorldEdit",
+        author: "EngineHub",
+        description: "Herramienta de edición masiva de mapas. Imprescindible para constructores; permite copiar, pegar y generar estructuras gigantes en segundos.",
+        icon: "https://cdn.modrinth.com/data/gv9p70le/icon.png"
+    },
+    {
+        slug: "vault",
+        name: "Vault",
+        author: "MilkBowl",
+        description: "Plugin 'puente' obligatorio. Permite que el sistema de economía, permisos y chat se comuniquen correctamente entre diferentes plugins.",
+        icon: "https://cdn.modrinth.com/data/uS89pS7f/icon.png"
+    },
+    {
+        slug: "geyser",
+        name: "GeyserMC",
+        author: "GeyserMC",
+        description: "¡Multiplataforma total! Permite que los jugadores de Minecraft Bedrock (Consolas, Móvil) se unan a tu servidor de Java Edition.",
+        icon: "https://cdn.modrinth.com/data/6S679N2n/icon.png"
+    }
 ];
 
 const RECOMMENDED_MODS = [
-    { slug: "sodium", name: "Sodium", author: "jellysquid3", description: "Optimización masiva del rendimiento y FPS.", icon: "https://cdn.modrinth.com/data/AANobbMI/icon.png" },
-    { slug: "iris", name: "Iris Shaders", author: "coderbot", description: "Soporte para Shaders con máximo rendimiento.", icon: "https://cdn.modrinth.com/data/YL577FC6/icon.png" },
-    { slug: "journeymap", name: "JourneyMap", author: "teamjm", description: "Mapa en tiempo real y minimapa detallado.", icon: "https://cdn.modrinth.com/data/m6897/icon.png" },
-    { slug: "jei", name: "Just Enough Items", author: "mezz", description: "Buscador de recetas y bloques integrado.", icon: "https://cdn.modrinth.com/data/u6ms9Ejq/icon.png" },
-    { slug: "voicechat", name: "Simple Voice Chat", author: "henkelmax", description: "Chat de voz por proximidad de alta fidelidad.", icon: "https://cdn.modrinth.com/data/896689/icon.png" }
+    {
+        slug: "sodium",
+        name: "Sodium",
+        author: "jellysquid3",
+        description: "Optimización extrema del rendimiento. Reemplaza el motor de renderizado de Minecraft para doblar o triplicar tus FPS sin perder calidad.",
+        icon: "https://cdn.modrinth.com/data/AANobbMI/icon.png"
+    },
+    {
+        slug: "iris",
+        name: "Iris Shaders",
+        author: "coderbot",
+        description: "Soporte moderno para Shaders. Disfruta de gráficos increíbles con una compatibilidad total con Sodium y un rendimiento superior a Optifine.",
+        icon: "https://cdn.modrinth.com/data/YL577FC6/icon.png"
+    },
+    {
+        slug: "journeymap",
+        name: "JourneyMap",
+        author: "teamjm",
+        description: "Mapa en tiempo real. Registra tu mundo mientras exploras, con minimapa en pantalla, puntos de interés (waypoints) y vista web.",
+        icon: "https://cdn.modrinth.com/data/m6897Ejq/icon.png"
+    },
+    {
+        slug: "jei",
+        name: "Just Enough Items",
+        author: "mezz",
+        description: "El buscador de objetos definitivo. Permite ver todas las recetas de crafteo y usos de cualquier bloque del juego de forma instantánea.",
+        icon: "https://cdn.modrinth.com/data/u6ms9Ejq/icon.png"
+    },
+    {
+        slug: "voicechat",
+        name: "Simple Voice Chat",
+        author: "henkelmax",
+        description: "Chat de voz por proximidad. Escucha a tus amigos más alto o más bajo según la distancia a la que estén de ti dentro del juego.",
+        icon: "https://cdn.modrinth.com/data/896689/icon.png"
+    }
 ];
 
 function formatBytes(bytes: number, decimals = 2) {
@@ -304,8 +364,15 @@ export function FileManager() {
                                         <div key={item.slug} className="flex flex-col p-4 hover:bg-white/[0.02] transition-colors group gap-3">
                                             <div className="flex items-center justify-between min-w-0">
                                                 <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="w-10 h-10 rounded-lg bg-gray-900 border border-gray-800 overflow-hidden shrink-0">
-                                                        <img src={item.icon} alt={item.name} className="w-full h-full object-cover" />
+                                                    <div className="w-10 h-10 rounded-lg bg-gray-900 border border-gray-800 overflow-hidden shrink-0 flex items-center justify-center">
+                                                        <img
+                                                            src={item.icon}
+                                                            alt={item.name}
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) => {
+                                                                (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=111&color=fff&bold=true`;
+                                                            }}
+                                                        />
                                                     </div>
                                                     <div className="truncate">
                                                         <p className="text-sm font-bold text-gray-200 truncate">{item.name}</p>

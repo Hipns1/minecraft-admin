@@ -146,16 +146,25 @@ export async function controlServer(action: "start" | "stop" | "restart") {
             const command = action === "restart" ? `docker restart ${CONTAINER_NAME}` :
                 action === "stop" ? `docker stop ${CONTAINER_NAME}` :
                     `docker start ${CONTAINER_NAME}`;
-            await execAsync(command);
+            const { stderr } = await execAsync(command);
+            if (stderr) console.warn(`Control warning: ${stderr}`);
         } else if (os.platform() === 'win32') {
             // Basic fallback for Windows development
             console.log(`[DEV] Mocking ${action} on Windows`);
+            // If they have a local .bat or .exe, we could try to run it here
         } else {
             // Default systemd
-            await execAsync(`sudo systemctl ${action} ${SERVICE_NAME}`);
+            try {
+                const { stderr } = await execAsync(`sudo systemctl ${action} ${SERVICE_NAME}`);
+                if (stderr) console.warn(`Control warning: ${stderr}`);
+            } catch (err: any) {
+                console.error(`Systemd error: ${err.message}`);
+                if (err.stderr) console.error(`Systemd stderr: ${err.stderr}`);
+                throw new Error(`Error de sistema: ${err.stderr || err.message}`);
+            }
         }
         return true;
-    } catch (error) {
+    } catch (error: any) {
         console.error(`Failed to ${action} server using ${CONTROL_METHOD}:`, error);
         throw error;
     }
