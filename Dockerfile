@@ -32,14 +32,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # or use a different approach. This Dockerfile is for the Web App itself.
 RUN apk add --no-cache sudo procps
 
-# Create serveradmin user with UID 1000 to match host
-# Alpine may already have a group with GID 1000, so we create the user first
-RUN adduser -D -u 1000 serveradmin || true && \
-  addgroup serveradmin wheel
-
-# Configure sudoers to allow serveradmin to run systemctl without password
-RUN echo "serveradmin ALL=(ALL) NOPASSWD: /usr/bin/systemctl" > /etc/sudoers.d/serveradmin && \
-  chmod 0440 /etc/sudoers.d/serveradmin
+# Configure sudoers to allow UID 1000 (set by docker-compose) to run systemctl without password
+# Use #1000 to reference the UID directly, as Alpine already has a user with this UID
+RUN echo "#1000 ALL=(ALL) NOPASSWD: /usr/bin/systemctl" > /etc/sudoers.d/uid1000 && \
+  chmod 0440 /etc/sudoers.d/uid1000
 
 
 # User will be set by docker-compose to match host user (1000:1000)
