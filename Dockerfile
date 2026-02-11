@@ -32,15 +32,14 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # or use a different approach. This Dockerfile is for the Web App itself.
 RUN apk add --no-cache sudo procps
 
-RUN addgroup --system --gid 1000 nodejs
-RUN adduser --system --uid 1000 nextjs
+# User will be set by docker-compose to match host user (1000:1000)
 
 COPY --from=builder /app/public ./public
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
 # Note: user will be set by docker-compose to match host user
 # USER nextjs
