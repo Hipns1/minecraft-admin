@@ -33,8 +33,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN apk add --no-cache sudo procps
 
 # Create serveradmin user with UID 1000 to match host
-RUN addgroup -g 1000 serveradmin && \
-  adduser -D -u 1000 -G serveradmin serveradmin
+# Alpine may already have a group with GID 1000, so we create the user first
+RUN adduser -D -u 1000 serveradmin || true && \
+  addgroup serveradmin wheel
 
 # Configure sudoers to allow serveradmin to run systemctl without password
 RUN echo "serveradmin ALL=(ALL) NOPASSWD: /usr/bin/systemctl" > /etc/sudoers.d/serveradmin && \
