@@ -32,8 +32,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # or use a different approach. This Dockerfile is for the Web App itself.
 RUN apk add --no-cache sudo procps
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN addgroup --system --gid 1000 nodejs
+RUN adduser --system --uid 1000 nextjs
 
 COPY --from=builder /app/public ./public
 
@@ -42,7 +42,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-USER nextjs
+# Note: user will be set by docker-compose to match host user
+# USER nextjs
 
 EXPOSE 3001
 
