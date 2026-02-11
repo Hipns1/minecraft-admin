@@ -32,6 +32,15 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # or use a different approach. This Dockerfile is for the Web App itself.
 RUN apk add --no-cache sudo procps
 
+# Create serveradmin user with UID 1000 to match host
+RUN addgroup -g 1000 serveradmin && \
+  adduser -D -u 1000 -G serveradmin serveradmin
+
+# Configure sudoers to allow serveradmin to run systemctl without password
+RUN echo "serveradmin ALL=(ALL) NOPASSWD: /usr/bin/systemctl" > /etc/sudoers.d/serveradmin && \
+  chmod 0440 /etc/sudoers.d/serveradmin
+
+
 # User will be set by docker-compose to match host user (1000:1000)
 
 COPY --from=builder /app/public ./public
